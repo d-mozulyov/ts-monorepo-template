@@ -6,6 +6,7 @@
     "build": "tsc",
     "clean": "rimraf ../../dist/app",
     "lint": "eslint src --ext .ts",
+    "test": "jest --passWithNoTests",
     "start": "node ../../dist/app/index.js",
     "dev": "tsc && node ../../dist/app/index.js"
   },

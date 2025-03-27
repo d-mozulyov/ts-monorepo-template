@@ -15,6 +15,12 @@
       "problemMatcher": "$eslint-stylish"
     },
     {
+      "label": "Test",
+      "type": "shell",
+      "command": "npm run test",
+      "group": "test"
+    },
+    {
       "label": "Build",
       "type": "shell",
       "command": "npm run build",
@@ -36,6 +42,12 @@
       "command": "npm run lint:app",
       "group": "test",
       "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Test App",
+      "type": "shell",
+      "command": "npm run test:app",
+      "group": "test"
     },
     {
       "label": "Build App",

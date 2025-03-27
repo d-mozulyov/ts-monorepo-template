@@ -9,9 +9,11 @@
   "scripts": {
     "clean": "yarn workspaces run clean",
     "lint": "yarn workspaces run lint",
+    "test": "yarn workspaces run test",
     "build": "yarn workspaces run build",
     "clean:app": "yarn workspace @monorepo/app clean",
     "lint:app": "yarn workspace @monorepo/app lint",
+    "test:app": "yarn workspace @monorepo/app test",
     "build:app": "yarn workspace @monorepo/app build",
     "start:app": "yarn workspace @monorepo/app start"
   },
