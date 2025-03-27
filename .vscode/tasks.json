@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "npm run clean",
+      "group": "none"
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "group": "test",
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "npm run build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Clean App",
+      "type": "shell",
+      "command": "npm run clean:app",
+      "group": "none"
+    },
+    {
+      "label": "Lint App",
+      "type": "shell",
+      "command": "npm run lint:app",
+      "group": "test",
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Build App",
+      "type": "shell",
+      "command": "npm run build:app",
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Start App",
+      "type": "shell",
+      "command": "npm run start:app",
+      "group": "none"
+    }
+  ]
+}

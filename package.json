@@ -1,0 +1,25 @@
+{
+  "name": "monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "clean": "yarn workspaces run clean",
+    "lint": "yarn workspaces run lint",
+    "build": "yarn workspaces run build",
+    "clean:app": "yarn workspace @monorepo/app clean",
+    "lint:app": "yarn workspace @monorepo/app lint",
+    "build:app": "yarn workspace @monorepo/app build",
+    "start:app": "yarn workspace @monorepo/app start"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^9.23.0",
+    "typescript": "^5.8.2",
+    "yarn": "^1.22.22"
+  },
+  "packageManager": "yarn@1.22.22"
+}

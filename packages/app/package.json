@@ -1,0 +1,20 @@
+{
+  "name": "@monorepo/app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf ../../dist/app",
+    "lint": "eslint src --ext .ts",
+    "start": "node ../../dist/app/index.js",
+    "dev": "tsc && node ../../dist/app/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.13",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^9.23.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.2"
+  }
+}
