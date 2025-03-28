@@ -114,6 +114,56 @@ async function createNewProject(rootDir, projectType) {
     // Update monorepo configuration
     await updateMonorepoConfig(rootDir, projectDir, projectName, slug);
 
+    // Verify package.json exists and contains required scripts
+    try {
+      // Check if package.json exists in the project
+      const packageJsonPath = path.join(projectDir, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        
+        // Ensure scripts object exists
+        if (!packageJson.scripts) {
+          packageJson.scripts = {};
+        }
+        
+        // Required scripts based on monorepo pattern
+        const requiredScripts = {
+          clean: 'rimraf dist',
+          lint: 'eslint src --ext .ts,.tsx',
+          test: 'jest',
+          build: 'tsc',
+          start: 'node dist/index.js',
+          dev: 'ts-node-dev --respawn src/index.ts'
+        };
+        
+        // Add missing scripts
+        let scriptsModified = false;
+        for (const [scriptName, defaultCommand] of Object.entries(requiredScripts)) {
+          if (!packageJson.scripts[scriptName]) {
+            packageJson.scripts[scriptName] = defaultCommand;
+            scriptsModified = true;
+          }
+        }
+        
+        // If scripts were added, update package.json
+        if (scriptsModified) {
+          fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+          console.log('Updated package.json with required scripts');
+        }
+      } else {
+        console.warn('package.json not found in the project');
+      }
+    } catch (error) {
+    console.error('Error creating Capacitor project:', error);
+    throw error;
+  }
+}
+      console.error('Error updating package.json:', error);
+    }
+    
+    // Update tsconfig.json for proper monorepo integration
+    updateTsConfig(rootDir, projectDir);
+
     console.log(`Project "${projectName}" successfully created!`);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -280,31 +330,35 @@ async function createProjectByType(rootDir, projectDir, slug, projectType) {
  * @param {string} packageName - Package name
  */
 async function createEmptyNodeProject(projectDir, packageName) {
-  // Create basic package.json
+  // Create basic package.json based on app/package.json
   const packageJson = {
-    name: packageName,
-    version: '0.1.0',
-    private: true,
-    scripts: {
-      clean: 'rimraf dist',
-      lint: 'eslint src --ext .ts,.tsx',
-      test: 'jest',
-      build: 'tsc',
-      start: 'node dist/index.js',
-      dev: 'ts-node src/index.ts'
+    "name": packageName,
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+      "build": "tsc",
+      "clean": "rimraf ./dist",
+      "lint": "eslint src --ext .ts",
+      "test": "jest --passWithNoTests",
+      "start": "node ./dist/index.js",
+      "dev": "tsc && node ./dist/index.js"
     },
-    dependencies: {},
-    devDependencies: {
-      '@types/node': '^16.0.0',
-      'typescript': '^4.5.0',
-      'ts-node': '^10.4.0',
-      'rimraf': '^3.0.2',
-      'eslint': '^8.0.0',
-      'jest': '^27.0.0',
-      '@types/jest': '^27.0.0',
-      'ts-jest': '^27.0.0'
-    }
+    "devDependencies": {
+      "@types/jest": "^29.5.14",
+      "@types/node": "^22.13.13",
+      "@typescript-eslint/eslint-plugin": "^8.28.0",
+      "@typescript-eslint/parser": "^8.28.0",
+      "eslint": "^9.23.0", 
+      "jest": "^29.7.0",
+      "rimraf": "^6.0.1",
+      "ts-jest": "^29.3.0",
+      "typescript": "^5.8.2"
+    },
+    "dependencies": {}
   };
+  
+  // Add package dependency to itself for proper monorepo setup
+  packageJson.dependencies[packageName] = "file:";
 
   fs.writeFileSync(
     path.join(projectDir, 'package.json'),
@@ -1513,12 +1567,17 @@ async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
     try {
       const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
       
-      // Add scripts
-      rootPackageJson.scripts[`clean:${slug}`] = `cd packages/${slug} && npm run clean`;
-      rootPackageJson.scripts[`lint:${slug}`] = `cd packages/${slug} && npm run lint`;
-      rootPackageJson.scripts[`test:${slug}`] = `cd packages/${slug} && npm run test`;
-      rootPackageJson.scripts[`build:${slug}`] = `cd packages/${slug} && npm run build`;
-      rootPackageJson.scripts[`start:${slug}`] = `cd packages/${slug} && npm run start`;
+      // Add scripts following the existing pattern in the monorepo
+      if (!rootPackageJson.scripts) {
+        rootPackageJson.scripts = {};
+      }
+      
+      // Based on the provided package.json structure
+      rootPackageJson.scripts[`clean:${slug}`] = `yarn workspace @monorepo/${slug} clean`;
+      rootPackageJson.scripts[`lint:${slug}`] = `yarn workspace @monorepo/${slug} lint`;
+      rootPackageJson.scripts[`test:${slug}`] = `yarn workspace @monorepo/${slug} test`;
+      rootPackageJson.scripts[`build:${slug}`] = `yarn workspace @monorepo/${slug} build`;
+      rootPackageJson.scripts[`start:${slug}`] = `yarn workspace @monorepo/${slug} start`;
       
       fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2));
       console.log('Updated root package.json');
@@ -1527,55 +1586,54 @@ async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
     }
   }
 
-  // Update VSCode launch.json
+  // Update VSCode launch.json to include the new project
   const launchJsonPath = path.join(rootDir, '.vscode', 'launch.json');
   if (fs.existsSync(launchJsonPath)) {
     try {
       const launchJson = JSON.parse(fs.readFileSync(launchJsonPath, 'utf8'));
       
-      // Get the app configuration as a template
-      const appConfig = launchJson.configurations.find(c => c.name === 'Debug App');
+      // Create a new configuration based on the format in launch.json
+      const newConfig = {
+        "type": "node",
+        "request": "launch",
+        "name": `Debug ${projectName}`,
+        "runtimeExecutable": "npm",
+        "runtimeArgs": [
+          "run",
+          "dev"
+        ],
+        "cwd": "${workspaceFolder}/packages/${slug}",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen"
+      };
       
-      if (appConfig) {
-        // Clone and modify the configuration
-        const newConfig = JSON.parse(JSON.stringify(appConfig));
-        newConfig.name = `Debug ${projectName}`;
-        
-        // Update paths and commands
-        if (newConfig.cwd) {
-          newConfig.cwd = newConfig.cwd.replace(/packages\/app/, `packages/${slug}`);
-        }
-        
-        if (newConfig.program) {
-          newConfig.program = newConfig.program.replace(/packages\/app/, `packages/${slug}`);
-        }
-        
-        // Add the new configuration
-        launchJson.configurations.push(newConfig);
-        
-        fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
-        console.log('Updated launch.json');
-      } else {
-        console.warn('Could not find "Debug App" configuration in launch.json');
-      }
+      // Add the new configuration
+      launchJson.configurations.push(newConfig);
+      
+      fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
+      console.log('Updated launch.json');
     } catch (error) {
       console.error('Error updating launch.json:', error);
     }
   } else {
     console.warn('launch.json not found, creating it');
     
-    // Create basic launch.json
+    // Create launch.json based on the provided structure
     const launchJson = {
-      version: '0.2.0',
-      configurations: [
+      "version": "0.2.0",
+      "configurations": [
         {
-          type: 'node',
-          request: 'launch',
-          name: `Debug ${projectName}`,
-          skipFiles: ['<node_internals>/**'],
-          program: '${workspaceFolder}/packages/${slug}/src/index.ts',
-          outFiles: ['${workspaceFolder}/packages/${slug}/dist/**/*.js'],
-          cwd: '${workspaceFolder}/packages/${slug}'
+          "type": "node",
+          "request": "launch",
+          "name": `Debug ${projectName}`,
+          "runtimeExecutable": "npm",
+          "runtimeArgs": [
+            "run",
+            "dev"
+          ],
+          "cwd": "${workspaceFolder}/packages/${slug}",
+          "console": "integratedTerminal",
+          "internalConsoleOptions": "neverOpen"
         }
       ]
     };
@@ -1596,28 +1654,44 @@ async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
     try {
       const tasksJson = JSON.parse(fs.readFileSync(tasksJsonPath, 'utf8'));
       
-      // Get the app tasks as templates
-      const appTasks = {
-        clean: tasksJson.tasks.find(t => t.label === 'Clean App'),
-        lint: tasksJson.tasks.find(t => t.label === 'Lint App'),
-        test: tasksJson.tasks.find(t => t.label === 'Test App'),
-        build: tasksJson.tasks.find(t => t.label === 'Build App'),
-        start: tasksJson.tasks.find(t => t.label === 'Start App')
-      };
-      
-      // Create new tasks based on the templates
-      for (const [type, template] of Object.entries(appTasks)) {
-        if (template) {
-          const newTask = JSON.parse(JSON.stringify(template));
-          newTask.label = `${type.charAt(0).toUpperCase() + type.slice(1)} ${projectName}`;
-          
-          if (newTask.options && newTask.options.cwd) {
-            newTask.options.cwd = newTask.options.cwd.replace(/packages\/app/, `packages/${slug}`);
-          }
-          
-          tasksJson.tasks.push(newTask);
+      // Add new tasks based on existing pattern in tasks.json
+      const newTasks = [
+        {
+          "label": `Clean ${projectName}`,
+          "type": "shell",
+          "command": `npm run clean:${slug}`,
+          "group": "none"
+        },
+        {
+          "label": `Lint ${projectName}`,
+          "type": "shell",
+          "command": `npm run lint:${slug}`,
+          "group": "test",
+          "problemMatcher": "$eslint-stylish"
+        },
+        {
+          "label": `Test ${projectName}`,
+          "type": "shell",
+          "command": `npm run test:${slug}`,
+          "group": "test"
+        },
+        {
+          "label": `Build ${projectName}`,
+          "type": "shell",
+          "command": `npm run build:${slug}`,
+          "group": "build",
+          "problemMatcher": "$tsc"
+        },
+        {
+          "label": `Start ${projectName}`,
+          "type": "shell",
+          "command": `npm run start:${slug}`,
+          "group": "none"
         }
-      }
+      ];
+      
+      // Add the new tasks
+      tasksJson.tasks.push(...newTasks);
       
       fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
       console.log('Updated tasks.json');
@@ -1627,59 +1701,41 @@ async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
   } else {
     console.warn('tasks.json not found, creating it');
     
-    // Create basic tasks.json
+    // Create tasks.json based on the provided structure
     const tasksJson = {
-      version: '2.0.0',
-      tasks: [
+      "version": "2.0.0",
+      "tasks": [
         {
-          type: 'npm',
-          script: 'clean',
-          label: `Clean ${projectName}`,
-          detail: `Clean ${projectName} project`,
-          options: {
-            cwd: '${workspaceFolder}/packages/${slug}'
-          },
-          problemMatcher: []
+          "label": `Clean ${projectName}`,
+          "type": "shell",
+          "command": `npm run clean:${slug}`,
+          "group": "none"
         },
         {
-          type: 'npm',
-          script: 'lint',
-          label: `Lint ${projectName}`,
-          detail: `Lint ${projectName} project`,
-          options: {
-            cwd: '${workspaceFolder}/packages/${slug}'
-          },
-          problemMatcher: ['$eslint-stylish']
+          "label": `Lint ${projectName}`,
+          "type": "shell",
+          "command": `npm run lint:${slug}`,
+          "group": "test",
+          "problemMatcher": "$eslint-stylish"
         },
         {
-          type: 'npm',
-          script: 'test',
-          label: `Test ${projectName}`,
-          detail: `Test ${projectName} project`,
-          options: {
-            cwd: '${workspaceFolder}/packages/${slug}'
-          },
-          problemMatcher: []
+          "label": `Test ${projectName}`,
+          "type": "shell",
+          "command": `npm run test:${slug}`,
+          "group": "test"
         },
         {
-          type: 'npm',
-          script: 'build',
-          label: `Build ${projectName}`,
-          detail: `Build ${projectName} project`,
-          options: {
-            cwd: '${workspaceFolder}/packages/${slug}'
-          },
-          problemMatcher: []
+          "label": `Build ${projectName}`,
+          "type": "shell",
+          "command": `npm run build:${slug}`,
+          "group": "build",
+          "problemMatcher": "$tsc"
         },
         {
-          type: 'npm',
-          script: 'start',
-          label: `Start ${projectName}`,
-          detail: `Start ${projectName} project`,
-          options: {
-            cwd: '${workspaceFolder}/packages/${slug}'
-          },
-          problemMatcher: []
+          "label": `Start ${projectName}`,
+          "type": "shell",
+          "command": `npm run start:${slug}`,
+          "group": "none"
         }
       ]
     };
@@ -1704,70 +1760,73 @@ function updateTsConfig(rootDir, projectDir) {
   const appTsConfigPath = path.join(rootDir, 'packages', 'app', 'tsconfig.json');
   const projectTsConfigPath = path.join(projectDir, 'tsconfig.json');
   
-  // If the project doesn't have a tsconfig.json yet, create one based on app's
-  if (fs.existsSync(appTsConfigPath) && !fs.existsSync(projectTsConfigPath)) {
+  // Based on the provided app-tsconfig.json, create a proper tsconfig.json
+  if (!fs.existsSync(projectTsConfigPath)) {
     try {
-      const appTsConfig = JSON.parse(fs.readFileSync(appTsConfigPath, 'utf8'));
+      // Create a tsconfig.json similar to the app's
+      const tsConfig = {
+        "extends": "../../tsconfig.json",
+        "compilerOptions": {
+          "outDir": "./dist",
+          "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+          "rootDir": "./src"
+        },
+        "include": [
+          "src/**/*"
+        ]
+      };
       
-      fs.writeFileSync(projectTsConfigPath, JSON.stringify(appTsConfig, null, 2));
-      console.log(`Created tsconfig.json based on app's configuration`);
+      fs.writeFileSync(projectTsConfigPath, JSON.stringify(tsConfig, null, 2));
+      console.log('Created tsconfig.json');
     } catch (error) {
       console.error('Error creating tsconfig.json:', error);
     }
   } else if (fs.existsSync(appTsConfigPath) && fs.existsSync(projectTsConfigPath)) {
-    // If both exist, merge missing options from app's tsconfig into project's
+    // If both exist, ensure the project's tsconfig has the correct structure
     try {
       const appTsConfig = JSON.parse(fs.readFileSync(appTsConfigPath, 'utf8'));
       const projectTsConfig = JSON.parse(fs.readFileSync(projectTsConfigPath, 'utf8'));
       
-      // Merge compilerOptions
-      if (appTsConfig.compilerOptions && !projectTsConfig.compilerOptions) {
+      let modified = false;
+      
+      // Ensure extends is set correctly
+      if (projectTsConfig.extends !== "../../tsconfig.json") {
+        projectTsConfig.extends = "../../tsconfig.json";
+        modified = true;
+      }
+      
+      // Ensure compilerOptions are set correctly
+      if (!projectTsConfig.compilerOptions) {
         projectTsConfig.compilerOptions = appTsConfig.compilerOptions;
-      } else if (appTsConfig.compilerOptions && projectTsConfig.compilerOptions) {
-        for (const [key, value] of Object.entries(appTsConfig.compilerOptions)) {
-          if (projectTsConfig.compilerOptions[key] === undefined) {
-            projectTsConfig.compilerOptions[key] = value;
-          }
+        modified = true;
+      } else {
+        if (!projectTsConfig.compilerOptions.outDir || !projectTsConfig.compilerOptions.outDir.includes("dist")) {
+          projectTsConfig.compilerOptions.outDir = "./dist";
+          modified = true;
+        }
+        if (!projectTsConfig.compilerOptions.tsBuildInfoFile) {
+          projectTsConfig.compilerOptions.tsBuildInfoFile = "./dist/tsconfig.tsbuildinfo";
+          modified = true;
+        }
+        if (!projectTsConfig.compilerOptions.rootDir) {
+          projectTsConfig.compilerOptions.rootDir = "./src";
+          modified = true;
         }
       }
       
-      // Merge include
-      if (appTsConfig.include && !projectTsConfig.include) {
-        projectTsConfig.include = appTsConfig.include;
+      // Ensure include is set correctly
+      if (!projectTsConfig.include) {
+        projectTsConfig.include = ["src/**/*"];
+        modified = true;
       }
       
-      // Merge exclude
-      if (appTsConfig.exclude && !projectTsConfig.exclude) {
-        projectTsConfig.exclude = appTsConfig.exclude;
+      if (modified) {
+        fs.writeFileSync(projectTsConfigPath, JSON.stringify(projectTsConfig, null, 2));
+        console.log('Updated tsconfig.json with correct structure');
       }
-      
-      fs.writeFileSync(projectTsConfigPath, JSON.stringify(projectTsConfig, null, 2));
-      console.log('Updated tsconfig.json with missing options from app\'s configuration');
     } catch (error) {
-      console.error('Error merging tsconfig.json:', error);
+      console.error('Error updating tsconfig.json:', error);
     }
-  } else if (!fs.existsSync(projectTsConfigPath)) {
-    // If no tsconfig.json exists in project or app, create a basic one
-    const basicTsConfig = {
-      compilerOptions: {
-        target: 'es2017',
-        module: 'commonjs',
-        esModuleInterop: true,
-        forceConsistentCasingInFileNames: true,
-        strict: true,
-        skipLibCheck: true,
-        outDir: 'dist',
-        declaration: true,
-        paths: {
-          '@shared/*': ['../shared/src/*']
-        }
-      },
-      include: ['src/**/*'],
-      exclude: ['node_modules', 'dist']
-    };
-    
-    fs.writeFileSync(projectTsConfigPath, JSON.stringify(basicTsConfig, null, 2));
-    console.log('Created basic tsconfig.json');
   }
 }
 
