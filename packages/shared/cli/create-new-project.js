@@ -34,7 +34,9 @@ async function createNewProject(rootDir, projectType) {
   try {
     // Get project name
     let projectName = '';
-    let isValidProjectName = false;
+    let isValid
+
+ProjectName = false;
 
     while (!isValidProjectName) {
       projectName = await question('Enter project name (e.g. "My App"): ');
@@ -154,11 +156,8 @@ async function createNewProject(rootDir, projectType) {
         console.warn('package.json not found in the project');
       }
     } catch (error) {
-    console.error('Error creating Capacitor project:', error);
-    throw error;
-  }
-}
       console.error('Error updating package.json:', error);
+      throw error;
     }
     
     // Update tsconfig.json for proper monorepo integration
