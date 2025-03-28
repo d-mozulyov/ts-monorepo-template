@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "clean": "rimraf ../../dist/app",
+    "clean": "rimraf ./dist",
     "lint": "eslint src --ext .ts",
     "test": "jest --passWithNoTests",
-    "start": "node ../../dist/app/index.js",
-    "dev": "tsc && node ../../dist/app/index.js"
+    "start": "node ./dist/index.js",
+    "dev": "tsc && node ./dist/app/index.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
@@ -20,5 +20,8 @@
     "rimraf": "^6.0.1",
     "ts-jest": "^29.3.0",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@monorepo/app": "file:"
   }
 }

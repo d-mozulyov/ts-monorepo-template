@@ -34,6 +34,21 @@ function createRelativeSymlink(targetPath, linkPath) {
   }
 }
 
+/**
+ * Install npm dependencies for a package
+ * @param {string} packageDir - Directory containing package.json
+ * @returns {boolean} - True if installation was successful
+ */
+function installNpmDependencies(packageDir) {
+  try {
+    execSync('npm install --include=dev --prefix=.', { cwd: packageDir, stdio: 'inherit' });
+    return true;
+  } catch (err) {
+    console.error(`Error: Failed running npm install in ${packageDir}: ${err.message}`);
+    return false;
+  }
+}
+
 // Set up a package directory by installing dependencies and linking shared modules
 function setupPackage(packageDir) {
   const packageJsonPath = path.join(packageDir, 'package.json');
@@ -54,10 +69,7 @@ function setupPackage(packageDir) {
   }
 
   // Run npm install to install dependencies
-  try {
-    execSync('npm install --include=dev', { cwd: packageDir, stdio: 'inherit' });
-  } catch (err) {
-    console.error(`Error: Failed running npm install in ${packageDir}: ${err.message}`);
+  if (!installNpmDependencies(packageDir)) {
     process.exit(1);
   }
 
@@ -111,6 +123,11 @@ function main() {
           setupPackage(packagePath);
         }
       });
+  
+    // Root npm dependencies
+    if (!installNpmDependencies(rootDir)) {
+      process.exit(1);
+    }
   }
 }
 

@@ -17,6 +17,9 @@
     "build:app": "yarn workspace @monorepo/app build",
     "start:app": "yarn workspace @monorepo/app start"
   },
+  "dependencies": {
+    "monorepo": "file:"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
