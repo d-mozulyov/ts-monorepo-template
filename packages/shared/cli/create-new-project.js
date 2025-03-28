@@ -128,7 +128,7 @@ async function createNewProject(rootDir, projectType) {
         
         // Required scripts based on monorepo pattern
         const requiredScripts = {
-          clean: 'rimraf dist',
+          clean: 'rimraf ./dist',
           lint: 'eslint src --ext .ts,.tsx',
           test: 'jest',
           build: 'tsc',
@@ -405,7 +405,7 @@ async function createReactProject(projectDir, packageName) {
     
     // Add missing scripts
     if (!packageJson.scripts.clean) {
-      packageJson.scripts.clean = 'rimraf dist';
+      packageJson.scripts.clean = 'rimraf ./dist';
     }
     if (!packageJson.scripts.lint) {
       packageJson.scripts.lint = 'eslint src --ext .ts,.tsx';
@@ -418,7 +418,7 @@ async function createReactProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -460,7 +460,7 @@ async function createNextJsProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -488,12 +488,12 @@ async function createAngularProject(projectDir, packageName) {
     
     // Ensure all required scripts are present
     if (!packageJson.scripts.clean) {
-      packageJson.scripts.clean = 'rimraf dist';
+      packageJson.scripts.clean = 'rimraf ./dist';
     }
     
     // Add rimraf for clean script
     if (!packageJson.devDependencies.rimraf) {
-      packageJson.devDependencies.rimraf = '^3.0.2';
+      packageJson.devDependencies.rimraf = '^6.0.1';
     }
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -522,7 +522,7 @@ async function createVueProject(projectDir, packageName) {
     
     // Add missing scripts
     if (!packageJson.scripts.clean) {
-      packageJson.scripts.clean = 'rimraf dist';
+      packageJson.scripts.clean = 'rimraf ./dist';
     }
     if (!packageJson.scripts.lint) {
       packageJson.scripts.lint = 'eslint src --ext .ts,.vue';
@@ -535,7 +535,7 @@ async function createVueProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -563,7 +563,7 @@ async function createSvelteProject(projectDir, packageName) {
     
     // Add missing scripts
     if (!packageJson.scripts.clean) {
-      packageJson.scripts.clean = 'rimraf dist';
+      packageJson.scripts.clean = 'rimraf ./dist';
     }
     if (!packageJson.scripts.lint) {
       packageJson.scripts.lint = 'eslint src --ext .ts,.svelte';
@@ -576,7 +576,7 @@ async function createSvelteProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -601,7 +601,7 @@ async function createExpressProject(projectDir, packageName) {
     version: '0.1.0',
     private: true,
     scripts: {
-      clean: 'rimraf dist',
+      clean: 'rimraf ./dist',
       lint: 'eslint src --ext .ts',
       test: 'jest',
       build: 'tsc',
@@ -686,7 +686,7 @@ async function createNestJsProject(projectDir, packageName) {
     
     // Ensure all required scripts are present
     if (!packageJson.scripts.clean) {
-      packageJson.scripts.clean = 'rimraf dist';
+      packageJson.scripts.clean = 'rimraf ./dist';
     }
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -712,7 +712,7 @@ async function createFastifyProject(projectDir, packageName) {
     version: '0.1.0',
     private: true,
     scripts: {
-      clean: 'rimraf dist',
+      clean: 'rimraf ./dist',
       lint: 'eslint src --ext .ts',
       test: 'jest',
       build: 'tsc',
@@ -813,7 +813,7 @@ async function createAdonisJsProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -957,7 +957,7 @@ async function createReactNativeProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -1001,7 +1001,7 @@ async function createExpoProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -1042,7 +1042,7 @@ async function createNativeScriptProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -1074,7 +1074,7 @@ async function createIonicProject(projectDir, packageName) {
     }
     
     // Add rimraf for clean script
-    packageJson.devDependencies.rimraf = '^3.0.2';
+    packageJson.devDependencies.rimraf = '^6.0.1';
     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
@@ -1131,7 +1131,7 @@ async function createElectronProject(projectDir, packageName) {
       version: '0.1.0',
       private: true,
       scripts: {
-        clean: 'rimraf dist',
+        clean: 'rimraf ./dist',
         lint: 'eslint src --ext .ts,.tsx',
         test: 'jest',
         build: 'vite build',
@@ -1328,7 +1328,7 @@ async function createNeutralinoProject(projectDir, packageName) {
       version: '0.1.0',
       private: true,
       scripts: {
-        clean: 'rimraf dist',
+        clean: 'rimraf ./dist',
         lint: 'eslint src --ext .ts,.js',
         test: 'jest',
         build: 'npx @neutralinojs/neu build',
@@ -1371,7 +1371,7 @@ async function createProtonNativeProject(projectDir, packageName) {
       version: '0.1.0',
       private: true,
       scripts: {
-        clean: 'rimraf dist',
+        clean: 'rimraf ./dist',
         lint: 'eslint src --ext .js,.jsx',
         test: 'jest',
         build: 'babel src -d dist',
@@ -1452,7 +1452,7 @@ async function createSciterProject(projectDir, packageName) {
       version: '0.1.0',
       private: true,
       scripts: {
-        clean: 'rimraf dist',
+        clean: 'rimraf ./dist',
         lint: 'eslint src --ext .js',
         test: 'jest',
         build: 'rollup -c',
