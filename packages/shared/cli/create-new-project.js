@@ -34,9 +34,7 @@ async function createNewProject(rootDir, projectType) {
   try {
     // Get project name
     let projectName = '';
-    let isValid
-
-ProjectName = false;
+    let isValidProjectName = false;
 
     while (!isValidProjectName) {
       projectName = await question('Enter project name (e.g. "My App"): ');
