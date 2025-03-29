@@ -26,72 +26,90 @@ This TypeScript monorepo template provides an opinionated yet flexible foundatio
 To create your own monorepo based on this template, follow these steps:
 
 1. **Obtain the template**. You can download the source code as a [ZIP archive from GitHub](https://github.com/d-mozulyov/ts-monorepo-template/archive/refs/heads/main.zip) or clone the repository and remove the `.git` folder:
-
    ```bash
    git clone https://github.com/d-mozulyov/ts-monorepo-template.git my-monorepo
    cd my-monorepo
    rmdir /s /q .git    # Windows
    rm -rf .git         # Linux/macOS/Bash
    ```
-
-2. **Initialize Git repository**
-   
-   You can either initialize a new Git repository:
+2. **Initialize Git repository**. This monorepo structure doesn't impose any restrictions on repository usage, so you're free to either use it **without creating a repository or copy these files into your existing one**. If you'd prefer to create a new repository, you can do so like this:
    ```bash
    git init
-   ```
-   
-   Or add these files to your existing repository:
-   ```bash
-   # Copy all files to your existing repository folder
-   cp -r /path/to/template/* /path/to/your-repo/
-   
-   # Navigate to your repository
-   cd /path/to/your-repo
-   
-   # Add the files to your repo
    git add .
-   
-   # Commit the changes
-   git commit -m "Add TypeScript monorepo structure"
-   
-   # Push to your remote repository (if you have one)
+   git commit -m "Add TypeScript monorepo structure
+   git remote add origin url/to/your/repository.git
    git push origin main
    ```
-
-3. **Setup dependencies**. Instead of using standard `npm install`, run the setup script:
+3. **Setup dependencies**. Instead of using standard `npm install`, run the universal setup script:
    ```bash
    setup.cmd         # Windows
    sh ./setup.cmd    # Linux/macOS/Bash
    ```
    For more details on how this works and why it's important, see the "Shared Modules and Atomic Build Architecture" section below.
-
-4. **Build the app example project**
-
-   You can build all projects in the monorepo:
+4. **Build the app example project**. This monorepo features a comprehensive set of standard scripts (detailed in the "Standard NPM Scripts" section below). You can build only the App application or all monorepo applications with a single command:
    ```bash
-   npm run build
+   npm run build       # Build all applications
+   npm run build:app   # Build App application
    ```
-   
-   Or build only the app project example:
-   ```bash
-   npm run build:app
-   ```
-
 5. **Run the app example project**
-
    Start the app project:
    ```bash
    npm run start:app
    ```
-   
    You should see the following output in the console:
    ```
    Hello from the App!
    2 + 3 = 5
    ```
-   
    This demonstrates that the app project successfully imports a function from the shared module.
+
+## Standard NPM Scripts
+When inside a specific project directory (e.g., `packages/app`), you can run these standard scripts:
+```
+npm run clean  - Removes build artifacts
+npm run lint   - Runs ESLint
+npm run test   - Runs tests
+npm run build  - Compiles TypeScript to JavaScript
+npm run start  - Runs the compiled project
+```
+When in the root directory of the monorepo, you can run scripts affecting all projects:
+```
+npm run clean  - Removes build artifacts from all projects
+npm run lint   - Runs ESLint on all projects
+npm run test   - Runs tests for all projects
+npm run build  - Compiles TypeScript to JavaScript for all projects
+```
+Or target specific projects with namespaced commands:
+```
+npm run clean:app        - Removes build artifacts from app project
+npm run lint:app         - Runs ESLint on app project
+npm run test:app         - Runs tests for app project
+npm run build:app        - Compiles TypeScript to JavaScript for app project
+npm run start:app        - Runs the compiled app project
+
+npm run build:telegram-bot  - Builds only the telegram-bot project
+npm run start:backend       - Starts only the backend project
+```
+Following the same pattern, you can work with any workspace project in the monorepo. Each new project created with `create-new.cmd` automatically registers these standardized scripts in the root package.json.
+## VS Code Integration
+The monorepo includes pre-configured VS Code settings that enhance development:
+- **Tasks** - All standard npm scripts are available as VS Code tasks:
+  ```
+  Clean App
+  Lint App
+  Test App
+  Build App
+  Start App
+  ```
+- **Debugging** - Each project has its own debug configuration in launch.json:
+  ```
+  Debug App
+  ```
+- **Editor Settings** - TypeScript-optimized configuration with formatOnSave and ESLint integration
+
+When you create a new project using `create-new.cmd`, corresponding VS Code tasks and debug configurations are automatically added to these files.
+
+This ensures a consistent development experience and allows you to run, debug, and maintain all projects directly from VS Code's interface.
 
 ## Shared Modules and Atomic Build Architecture
 
@@ -134,66 +152,6 @@ This script works on all platforms and will request administrator privileges on 
 
 Each framework comes with properly configured TypeScript, build scripts, and shared module integration.
 
-## Standard NPM Scripts
-
-When inside a specific project directory (e.g., `packages/app`), you can run these standard scripts:
-
-```
-npm run clean  - Removes build artifacts
-npm run lint   - Runs ESLint
-npm run test   - Runs tests
-npm run build  - Compiles TypeScript to JavaScript
-npm run start  - Runs the compiled project
-```
-
-When in the root directory of the monorepo, you can run scripts affecting all projects:
-
-```
-npm run clean  - Removes build artifacts from all projects
-npm run lint   - Runs ESLint on all projects
-npm run test   - Runs tests for all projects
-npm run build  - Compiles TypeScript to JavaScript for all projects
-```
-
-Or target specific projects with namespaced commands:
-
-```
-npm run clean:app        - Removes build artifacts from app project
-npm run lint:app         - Runs ESLint on app project
-npm run test:app         - Runs tests for app project
-npm run build:app        - Compiles TypeScript to JavaScript for app project
-npm run start:app        - Runs the compiled app project
-
-npm run build:telegram-bot  - Builds only the telegram-bot project
-npm run start:backend       - Starts only the backend project
-```
-
-Following the same pattern, you can work with any workspace project in the monorepo. Each new project created with `create-new.cmd` automatically registers these standardized scripts in the root package.json.
-
-## VS Code Integration
-
-The monorepo includes pre-configured VS Code settings that enhance development:
-
-- **Tasks** - All standard npm scripts are available as VS Code tasks:
-  ```
-  Clean App
-  Lint App
-  Test App
-  Build App
-  Start App
-  ```
-
-- **Debugging** - Each project has its own debug configuration in launch.json:
-  ```
-  Debug App
-  ```
-
-- **Editor Settings** - TypeScript-optimized configuration with formatOnSave and ESLint integration
-
-When you create a new project using `create-new.cmd`, corresponding VS Code tasks and debug configurations are automatically added to these files.
-
-This ensures a consistent development experience and allows you to run, debug, and maintain all projects directly from VS Code's interface.
-
 ## Contributing
 
 This TypeScript monorepo template is an open project, and contributions are welcome! If you find it useful, consider:
@@ -204,9 +162,7 @@ This TypeScript monorepo template is an open project, and contributions are welc
 - 📚 Enhancing documentation
 - 🚀 Sharing your experience using it
 
-If you're using this template for your own projects, I'd love to hear about your use case and any customizations you've made.
-
-For major changes or new framework additions, please open an issue first to discuss what you'd like to change.
+If you're using this template for your own projects, I'd love to hear about your use case and any customizations you've made. For major changes or new framework additions, please open an issue first to discuss what you'd like to change.
 
 ## License
 
