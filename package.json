@@ -1,25 +1,37 @@
 {
   "name": "monorepo",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "clean": "yarn workspaces run clean",
-    "lint": "yarn workspaces run lint",
-    "build": "yarn workspaces run build",
-    "clean:app": "yarn workspace @monorepo/app clean",
-    "lint:app": "yarn workspace @monorepo/app lint",
-    "build:app": "yarn workspace @monorepo/app build",
-    "start:app": "yarn workspace @monorepo/app start"
+    "clean": "npm run clean --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces",
+    "clean:app": "npm run clean --workspace=@monorepo/app",
+    "lint:app": "npm run lint --workspace=@monorepo/app",
+    "test:app": "npm run test --workspace=@monorepo/app",
+    "build:app": "npm run build --workspace=@monorepo/app",
+    "start:app": "npm run start --workspace=@monorepo/app",
+    "clean:empty-node": "npm run clean --workspace=@monorepo/empty-node",
+    "lint:empty-node": "npm run lint --workspace=@monorepo/empty-node",
+    "test:empty-node": "npm run test --workspace=@monorepo/empty-node",
+    "build:empty-node": "npm run build --workspace=@monorepo/empty-node",
+    "start:empty-node": "npm run start --workspace=@monorepo/empty-node"
+  },
+  "dependencies": {
+    "monorepo": "file:"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "eslint": "^9.23.0",
-    "typescript": "^5.8.2",
-    "yarn": "^1.22.22"
-  },
-  "packageManager": "yarn@1.22.22"
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.0",
+    "typescript": "^5.8.2"
+  }
 }
