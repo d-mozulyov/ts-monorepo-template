@@ -45,27 +45,32 @@ To create your own monorepo based on this template, follow these steps:
    setup.cmd         # Windows
    sh ./setup.cmd    # Linux/macOS/Bash
    ```
-   For more details on how this works and why it's important, see the "Shared Modules and Atomic Build Architecture" section below.
+   For more details on how this works and why it's important, see the _"Shared Modules and Atomic Build Architecture"_ section below.
    
-4. **Build the app example project**. This monorepo features a comprehensive set of standard scripts (detailed in the "Standard NPM Scripts" section below). You can build only the App application or all monorepo applications with a single command:
+4. **Build the app example project**. This monorepo features a comprehensive set of standard scripts (detailed in the _"Standard Package Scripts_" section below). You can build only the App application or all monorepo applications with a single command:
    ```bash
    npm run build       # Build all applications
    npm run build:app   # Build App application
    ```
-5. **Run the app example project**
-   Start the app project:
+5. **Run the app example project**.
    ```bash
+   # Start the app project
    npm run start:app
-   ```
-   You should see the following output in the console:
-   ```
+   
+   # You should see the following output in the console:
    Hello from the App!
    2 + 3 = 5
    ```
-   This demonstrates that the app project successfully imports a function from the shared module.
 
-## Standard NPM Scripts
-When inside a specific project directory (e.g., `packages/app`), you can run these standard scripts:
+## Standard Package Scripts
+
+Each `package.json` contains a `scripts` section that can be manually configured and executed from the command line. Each script has a name (like `build`, `test`, `start`, etc.) which is used to execute it. For example, the same script named `build` can be run using different package managers:
+```bash
+npm run build | yarn build | pnpm build
+```
+The monorepo template does not impose any restrictions on this section beyond the existing syntax rules. However, when generating a new project within this monorepo, for your convenience, we pre-populate a set of typical scripts that you can run right away: some are described in the root directory, some in the project directory.
+
+For example, if you are in the project directory `packages/app`, you can run the following:
 ```
 npm run clean  - Removes build artifacts
 npm run lint   - Runs ESLint
@@ -73,20 +78,18 @@ npm run test   - Runs tests
 npm run build  - Compiles TypeScript to JavaScript
 npm run start  - Runs the compiled project
 ```
-When in the root directory of the monorepo, you can run scripts affecting all projects:
+When in the root directory of the monorepo, you can run scripts affecting all projects or target specific projects with namespaced commands:
 ```
 npm run clean  - Removes build artifacts from all projects
 npm run lint   - Runs ESLint on all projects
 npm run test   - Runs tests for all projects
 npm run build  - Compiles TypeScript to JavaScript for all projects
-```
-Or target specific projects with namespaced commands:
-```
-npm run clean:app        - Removes build artifacts from app project
-npm run lint:app         - Runs ESLint on app project
-npm run test:app         - Runs tests for app project
-npm run build:app        - Compiles TypeScript to JavaScript for app project
-npm run start:app        - Runs the compiled app project
+
+npm run clean:app    - Removes build artifacts from app project
+npm run lint:app     - Runs ESLint on app project
+npm run test:app     - Runs tests for app project
+npm run build:app    - Compiles TypeScript to JavaScript for app project
+npm run start:app    - Runs the compiled app project
 
 npm run build:telegram-bot  - Builds only the telegram-bot project
 npm run start:backend       - Starts only the backend project
@@ -94,10 +97,11 @@ npm run start:backend       - Starts only the backend project
 Following the same pattern, you can work with any workspace project in the monorepo. Each new project created with `create-new.cmd` automatically registers these standardized scripts in the root package.json.
 
 ## VS Code Integration
+
 The monorepo includes pre-configured VS Code settings that enhance development:
-- **Tasks** - All standard npm scripts are available as VS Code tasks in `tasks.json`:
+- **Tasks** - All standard package scripts are available as VS Code tasks in `tasks.json`:
   ```
-  Clean, Lint, Test, Build                                # all application
+  Clean, Lint, Test, Build                                # all applications
   Clean App, Lint App, Test App, Build App, Start App     # specific application (App)
   ```
 - **Debugging** - Each project has its own debug configuration in `launch.json`:
@@ -110,17 +114,18 @@ When you create a new project using `create-new.cmd`, corresponding VS Code task
 
 ## Shared Modules and Atomic Build Architecture
 
-This monorepo uses symbolic links instead of package dependencies to connect the `shared` directory to each project via `src/@shared`. This approach allows any module hierarchy in the shared folder and ensures only used code gets included in builds. For example, here's the code from the App application:
-
+There are multiple ways to organize access to a `shared` directory in a monorepo. We suggest you consider creating a symbolic link called `src/@shared` pointing to this directory. This approach differs from the traditional method of importing shared code as a package, offering advantages like flexible module hierarchy, tree-shaking optimizations, and direct source access for easier debugging. In the App application example, the `add()` function is imported from `@shared` symlink. This approach allows importing directly from a specific directory or module for better optimization and readability, which is practically impossible when importing from a packaged dependency:
 ```typescript
 import { add } from './@shared' /* or './@shared/utils' or './@shared/utils/math' */;
 
 console.log('Hello from the App!');
 console.log(`2 + 3 = ${add(2, 3)}`);
 ```
-Standard `npm install` doesn't work correctly here as it would create node_modules only in the repository root. Instead, the `setup.cmd` script creates symlinks, installs dependencies for each package individually, and configures the TypeScript path resolutions. Run it on Windows with `setup.cmd` or on Linux/macOS with `sh ./setup.cmd`. Note that Windows requires administrator privileges for symlink creation.
+Our template doesn't restrict you in any way. You're free to create symlinks manually or not use them at all, use any package manager of your choice, delete the _node_modules_ folder and reinitialize it. The goal is to make your life easier when solving common tasks.
 
-Each project builds independently, allowing isolated debugging and deploying only changed projects. The shared module system ensures code consistency while maintaining component independence.
+For dependency initialization, both locally or on a build server, instead of the usual `npm/yarn/pnpm install`, we recommend using the universal `setup.cmd` script (Windows: run it directly, Linux/macOS: run with `sh ./setup.cmd`). This script initializes symlinks, downloads development dependencies to the _node_modules_ in the root directory, and places compact **production** dependencies in the project directory's _node_modules_. This approach isolates projects from each other, making builds faster and consuming less disk space.
+
+The `setup.cmd` script allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note:** On Windows, creating symlinks may require administrator privileges.
 
 ## Multi-Framework Support
 
@@ -135,7 +140,7 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 
 ![Project Creation Menu](./packages/shared/cli/create-new-menu.png)
 
-Run it on Windows with `create-new.cmd` or on Linux/macOS with sh `./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. Note that Windows requires administrator privileges for symlink creation. If you're developing on Windows and don't have administrator rights, this monorepo template will likely be unusable for you.
+Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. The script `create-new.cmd`, as well as `setup.cmd`, allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note**: On Windows, creating symlinks may require administrator privileges.
 
 ## Contributing
 

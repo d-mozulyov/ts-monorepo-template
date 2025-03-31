@@ -62,8 +62,9 @@ const defaultDependencies = {
  * Creates a new project in the monorepo
  * @param {string} rootDir - Root directory of the monorepo
  * @param {string} projectType - Type of project to create
+ * @param {string} packageManager - Package manager to use ('npm', 'yarn', or 'pnpm')
  */
-async function createNewProject(rootDir, projectType) {
+async function createNewProject(rootDir, projectType, packageManager) {
   // Validate project type
   const validProjectTypes = [
     'Empty Node.js', 'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte', 
@@ -216,8 +217,12 @@ async function createNewProject(rootDir, projectType) {
     // Update tsconfig.json for proper monorepo integration
     updateTsConfig(rootDir, projectDir);
 
-    // Run npm install to install dependencies
-    if (!installNpmDependencies(projectDir)) {
+    // Install project dependencies
+    if (!installPackageDependencies(projectDir, false, packageManager)) {
+      process.exit(1);
+    }
+    // Update root dependencies, including development ones, for the entire monorepo
+    if (!installPackageDependencies(rootDir, true, packageManager)) {
       process.exit(1);
     }
 
@@ -401,15 +406,15 @@ async function createEmptyNodeProject(projectDir, packageName) {
       "dev": "tsc && node ./dist/index.js"
     },
     "devDependencies": {
-      "@types/jest": "^29.5.14",
-      "@types/node": "^22.13.13",
-      "@typescript-eslint/eslint-plugin": "^8.28.0",
-      "@typescript-eslint/parser": "^8.28.0",
-      "eslint": "^9.23.0", 
-      "jest": "^29.7.0",
-      "rimraf": "^6.0.1",
-      "ts-jest": "^29.3.0",
-      "typescript": "^5.8.2"
+      "@types/jest": defaultDependencies['@types/jest'],
+      "@types/node": defaultDependencies['@types/node'],
+      "@typescript-eslint/eslint-plugin": defaultDependencies['@typescript-eslint/eslint-plugin'],
+      "@typescript-eslint/parser": defaultDependencies['@typescript-eslint/parser'],
+      "eslint": defaultDependencies['eslint'],
+      "jest": defaultDependencies['jest'],
+      "rimraf": defaultDependencies['rimraf'],
+      "ts-jest": defaultDependencies['ts-jest'],
+      "typescript": defaultDependencies['typescript']
     },
     "dependencies": {}
   };
@@ -1888,17 +1893,39 @@ function updateTsConfig(rootDir, projectDir) {
 }
 
 /**
- * Install npm dependencies for a package
+ * Install package dependencies
  * @param {string} packageDir - Directory containing package.json
+ * @param {boolean} [isRoot=false] - True if installing in root directory (without --prefix)
+ * @param {string} packageManager - Package manager to use ('npm', 'yarn', or 'pnpm')
  * @returns {boolean} - True if installation was successful
  */
-function installNpmDependencies(packageDir) {
+function installPackageDependencies(packageDir, isRoot, packageManager) {
   try {
-    console.error(`${packageDir}: npm install --include=dev --prefix=.`);
-    execSync('npm install --include=dev --prefix=.', { cwd: packageDir, stdio: 'inherit' });
+    // Determine the command based on package manager and installation type
+    let command;
+    
+    switch (packageManager) {
+      case 'npm':
+        command = isRoot ? 'npm install' : 'npm install --omit=dev --prefix .';
+        break;
+      case 'yarn':
+        command = isRoot ? 'yarn install' : 'yarn install --production --cwd .';
+        break;
+      case 'pnpm':
+        command = isRoot ? 'pnpm install --force' : 'pnpm install --prod --dir . --force';
+        break;
+      default:
+        throw new Error(`Unsupported package manager: ${packageManager}`);
+    }
+    
+    // Log the directory and the command that will be executed
+    console.log(`${packageDir}: ${command}`);
+    
+    // Execute the command
+    execSync(command, { cwd: packageDir, stdio: 'inherit' });
     return true;
   } catch (err) {
-    console.error(`Error: Failed running npm install in ${packageDir}: ${err.message}`);
+    console.error(`Error: Failed running package installation in ${packageDir}: ${err.message}`);
     return false;
   }
 }

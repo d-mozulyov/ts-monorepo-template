@@ -15,17 +15,13 @@
     "lint:app": "npm run lint --workspace=@monorepo/app",
     "test:app": "npm run test --workspace=@monorepo/app",
     "build:app": "npm run build --workspace=@monorepo/app",
-    "start:app": "npm run start --workspace=@monorepo/app",
-    "clean:empty-node": "npm run clean --workspace=@monorepo/empty-node",
-    "lint:empty-node": "npm run lint --workspace=@monorepo/empty-node",
-    "test:empty-node": "npm run test --workspace=@monorepo/empty-node",
-    "build:empty-node": "npm run build --workspace=@monorepo/empty-node",
-    "start:empty-node": "npm run start --workspace=@monorepo/empty-node"
+    "start:app": "npm run start --workspace=@monorepo/app"
   },
   "dependencies": {
     "monorepo": "file:"
   },
   "devDependencies": {
+    "chalk": "4.1.2",
     "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",

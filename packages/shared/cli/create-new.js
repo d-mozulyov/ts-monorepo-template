@@ -29,6 +29,20 @@ function isAdminWindows() {
 }
 
 /**
+ * Checks if a package manager is installed globally
+ * @param {string} manager - Package manager to check ('npm', 'yarn', or 'pnpm')
+ * @returns {boolean} True if the package manager is installed
+ */
+function isPackageManagerInstalled(manager) {
+  try {
+    execSync(`${manager} --version`, { stdio: 'ignore' });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Determines the root directory of the monorepo
  * @returns {string} The absolute path to the root directory
  */
@@ -268,12 +282,49 @@ export const example = () => {
 }
 
 /**
+ * Parse command line arguments
+ * @returns {Object} Parsed arguments
+ */
+function parseArguments() {
+  const args = process.argv.slice(2);
+  let packageManager = 'npm'; // Default package manager
+  
+  for (const arg of args) {
+    if (arg === '--npm' || arg === '--yarn' || arg === '--pnpm') {
+      packageManager = arg.substring(2); // Remove the '--' prefix
+    } else {
+      console.error(chalk.red(`Error: Unknown argument: ${arg}`));
+      
+      // Display usage message based on OS
+      if (os.platform() === 'win32') {
+        console.error('Usage: create-new.cmd [--npm|--yarn|--pnpm]');
+      } else {
+        console.error('Usage: sh ./create-new.cmd [--npm|--yarn|--pnpm]');
+      }
+      
+      exit(1);
+    }
+  }
+  
+  // Verify that the selected package manager is installed
+  if (!isPackageManagerInstalled(packageManager)) {
+    console.error(chalk.red(`Error: ${packageManager} is not installed or not available in the system path`));
+    exit(1);
+  }
+  
+  return { packageManager };
+}
+
+/**
  * Main function that orchestrates the project creation workflow
  */
 async function main() {
   console.log(chalk.bold.green('🚀 Create New Project in Monorepo'));
   console.log('');
 
+  // Parse command line arguments
+  const { packageManager } = parseArguments();
+  
   // Check admin rights for Windows
   if (os.platform() === 'win32' && !isAdminWindows()) {
     console.error(chalk.red('Error: This script requires administrator privileges on Windows.'));
@@ -339,10 +390,10 @@ async function main() {
 
   // Output the final selection
   console.log('');
-  console.log(chalk.green('✅ Selected project type:'), chalk.bold(selectedProject));
+  console.log(chalk.green('✅ Selected project type:'), chalk.bold(`${selectedProject} (${packageManager})`));
 
-  // Create the new project, passing rootDir as the first argument
-  await createNewProject(rootDir, selectedProject);
+  // Create the new project, passing rootDir, selectedProject and packageManager
+  await createNewProject(rootDir, selectedProject, packageManager);
 }
 
 // Execute the main function
