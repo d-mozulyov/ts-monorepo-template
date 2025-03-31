@@ -125,7 +125,7 @@ Our template doesn't restrict you in any way. You're free to create symlinks man
 
 For dependency initialization, both locally or on a build server, instead of the usual `npm/yarn/pnpm install`, we recommend using the universal `setup.cmd` script (Windows: run it directly, Linux/macOS: run with `sh ./setup.cmd`). This script initializes symlinks, downloads development dependencies to the _node_modules_ in the root directory, and places compact **production** dependencies in the project directory's _node_modules_. This approach isolates projects from each other, making builds faster and consuming less disk space.
 
-The `setup.cmd` script allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note:** On Windows, creating symlinks may require administrator privileges.
+For most cases, running the `setup.cmd` script without any parameters will be sufficient as it will initialize the entire monorepo. The complete script syntax is: `setup.cmd [project] [--npm|--yarn|--pnpm|--remove]`. If you specify a project name, the script will initialize only that specific project instead of the entire monorepo. You can also specify which package manager to use: `npm` (default), `yarn`, or `pnpm`. Using the `--remove` option will delete the project files along with related scripts and VSCode configurations. Additionally, if the project is under Git version control, it will also be removed from the repository.
 
 ## Multi-Framework Support
 
