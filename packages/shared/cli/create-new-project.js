@@ -713,7 +713,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log('Server running at http://localhost:' + \${port});
+  console.log('Server running at http://localhost:' + port);
 });
 
 export default app;`
@@ -969,7 +969,7 @@ app.use('messages', {
 // Start the server
 const port = process.env.PORT || 3030;
 app.listen(port, () => {
-  console.log('Feathers server running on http://localhost:' + \${port});
+  console.log('Feathers server running on http://localhost:' + port);
 });
 
 export default app;`
