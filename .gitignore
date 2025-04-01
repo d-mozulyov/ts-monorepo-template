@@ -267,7 +267,6 @@ dist-tauri/
 .tmp/
 bin/
 neutralino.js
-settings.json
 
 ## Proton Native specific
 proton-native.config.js

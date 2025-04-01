@@ -64,6 +64,42 @@ function findRootDir() {
 }
 
 /**
+ * Checks if the directory is under Git version control
+ * @param {string} dir - Directory to check
+ * @returns {boolean} True if the directory is under Git version control
+ */
+function isGitRepository(dir) {
+  try {
+    execSync('git rev-parse --is-inside-work-tree', { 
+      cwd: dir,
+      stdio: 'ignore' 
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Adds files to Git
+ * @param {string} rootDir - Root directory of the repository
+ * @param {string[]} files - Array of file paths relative to rootDir
+ */
+function addFilesToGit(rootDir, files) {
+  try {
+    for (const file of files) {
+      execSync(`git add "${file}"`, { 
+        cwd: rootDir,
+        stdio: 'ignore' 
+      });
+    }
+    console.log(chalk.green('✅ Files successfully added to Git'));
+  } catch (error) {
+    console.error(chalk.red(`Error adding files to Git: ${error.message}`));
+  }
+}
+
+/**
  * Creates an interactive menu with keyboard navigation
  * @param {string} title - Menu title/prompt
  * @param {string[]} options - Array of menu options
@@ -144,14 +180,38 @@ function createPrompt() {
 }
 
 /**
- * Creates a new shared module
- * @param {string} sharedDir - Path to the shared directory
+ * Asks user a yes/no question and returns their answer
+ * @param {string} question - The question to ask
+ * @returns {Promise<boolean>} User's answer (true for yes, false for no)
  */
-async function createNewSharedModule(sharedDir) {
+async function askYesNo(question) {
+  const prompt = createPrompt();
+  
+  const answer = await new Promise((resolve) => {
+    prompt.question(
+      chalk.yellow(`${question} (y/n): `),
+      (answer) => resolve(answer.trim().toLowerCase())
+    );
+  });
+  
+  prompt.close();
+  return answer === 'y' || answer === 'yes';
+}
+
+/**
+ * Creates a new shared module
+ * @param {string} rootDir - Path to the root directory
+ * @returns {Promise<string[]>} Array of created file paths relative to rootDir
+ */
+async function createNewSharedModule(rootDir) {
   console.log(chalk.bold.blue('📦 Creating a new shared module'));
   console.log('');
   
+  // Calculate shared directory path
+  const sharedDir = path.join(rootDir, 'packages', 'shared');
+  
   const prompt = createPrompt();
+  const createdFiles = [];
   
   let moduleName = '';
   let isValidModule = false;
@@ -221,14 +281,19 @@ async function createNewSharedModule(sharedDir) {
   fs.mkdirSync(moduleDir, { recursive: true });
   
   // Create the module file with a basic template
+  moduleCodeName = moduleName.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_');
   fs.writeFileSync(modulePath, `/**
  * ${path.basename(moduleName)}
  */
 
-export const example = () => {
+export const ${moduleCodeName}_example = () => {
   console.log('Hello from ${moduleName}');
 };
 `);
+
+  // Add to created files (relative path from rootDir)
+  const relModulePath = path.relative(rootDir, modulePath);
+  createdFiles.push(relModulePath);
   
   console.log(chalk.green(`✅ Created module: ${modulePath}`));
 
@@ -242,8 +307,10 @@ export const example = () => {
     // Don't add self-reference
     if (indexPath !== childPath) {
       // Create index file if it doesn't exist
+      let fileCreated = false;
       if (!fs.existsSync(indexPath)) {
         fs.writeFileSync(indexPath, '');
+        fileCreated = true;
         console.log(chalk.blue(`Created index: ${indexPath}`));
       }
       
@@ -265,6 +332,13 @@ export const example = () => {
           : exportStatement + '\n';
         
         fs.writeFileSync(indexPath, newContent);
+        
+        // Add to created files only if we created a new file
+        if (fileCreated) {
+          const relIndexPath = path.relative(rootDir, indexPath);
+          createdFiles.push(relIndexPath);
+        }
+        
         console.log(chalk.blue(`Updated index: ${indexPath} with export for ${importPath}`));
       }
     }
@@ -277,21 +351,22 @@ export const example = () => {
     // Next iteration
     childPath = baseDir;
   }
-  
-  console.log(chalk.green.bold('\n✨ Shared module successfully created and indexed!'));
+ 
+  return createdFiles;
 }
 
 /**
- * Parse command line arguments
- * @returns {Object} Parsed arguments
+ * Parse command line arguments and determine optimal package manager
+ * @returns {Object} Parsed arguments with selected package manager
  */
 function parseArguments() {
   const args = process.argv.slice(2);
-  let packageManager = 'npm'; // Default package manager
+  let explicitPackageManager = null;
   
+  // Check if package manager is explicitly specified in args
   for (const arg of args) {
     if (arg === '--npm' || arg === '--yarn' || arg === '--pnpm') {
-      packageManager = arg.substring(2); // Remove the '--' prefix
+      explicitPackageManager = arg.substring(2); // Remove the '--' prefix
     } else {
       console.error(chalk.red(`Error: Unknown argument: ${arg}`));
       
@@ -306,13 +381,48 @@ function parseArguments() {
     }
   }
   
-  // Verify that the selected package manager is installed
-  if (!isPackageManagerInstalled(packageManager)) {
-    console.error(chalk.red(`Error: ${packageManager} is not installed or not available in the system path`));
-    exit(1);
+  // If package manager is explicitly specified, verify it's installed
+  if (explicitPackageManager) {
+    if (!isPackageManagerInstalled(explicitPackageManager)) {
+      console.error(chalk.red(`Error: ${explicitPackageManager} is not installed or not available in the system path`));
+      exit(1);
+    }
+    console.log(chalk.blue(`Using explicitly specified package manager: ${explicitPackageManager}`));
+    return { packageManager: explicitPackageManager };
+  }
+   
+  // Find root directory to check for lock files
+  const rootDir = findRootDir();
+  
+  // Check for pnpm-lock.yaml
+  if (fs.existsSync(path.join(rootDir, 'pnpm-lock.yaml'))) {
+    if (isPackageManagerInstalled('pnpm')) {
+      console.log(chalk.gray(`Found pnpm-lock.yaml in project root, using ${chalk.underline('pnpm')} as package manager`));
+      return { packageManager: 'pnpm' };
+    } else {
+      console.log(chalk.yellow('Found pnpm-lock.yaml in project root, but pnpm is not installed'));
+    }
   }
   
-  return { packageManager };
+  // Check for yarn.lock
+  if (fs.existsSync(path.join(rootDir, 'yarn.lock'))) {
+    if (isPackageManagerInstalled('yarn')) {
+      console.log(chalk.gray(`Found yarn.lock in project root, using ${chalk.underline('yarn')} as package manager`));
+      return { packageManager: 'yarn' };
+    } else {
+      console.log(chalk.yellow('Found yarn.lock in project root, but yarn is not installed'));
+    }
+  }
+  
+  // Default to npm
+  if (isPackageManagerInstalled('npm')) {
+    console.log(chalk.gray(`Using ${chalk.underline('npm')} as default package manager`));
+    return { packageManager: 'npm' };
+  }
+  
+  // If we get here, no package manager is installed
+  console.error(chalk.red('Error: No package manager (npm, yarn, or pnpm) is installed or available in the system path'));
+  exit(1);
 }
 
 /**
@@ -321,9 +431,6 @@ function parseArguments() {
 async function main() {
   console.log(chalk.bold.green('🚀 Create New Project in Monorepo'));
   console.log('');
-
-  // Parse command line arguments
-  const { packageManager } = parseArguments();
   
   // Check admin rights for Windows
   if (os.platform() === 'win32' && !isAdminWindows()) {
@@ -335,6 +442,10 @@ async function main() {
   // Find the root directory
   const rootDir = findRootDir();
   console.log(chalk.gray(`Root directory: ${rootDir}`));
+  
+  // Parse command line arguments
+  const { packageManager } = parseArguments();
+  console.log('');
   
   // Calculate shared directory path
   const sharedDir = path.join(rootDir, 'packages', 'shared');
@@ -355,7 +466,26 @@ async function main() {
   // Handle shared module separately
   if (categoryIndex === 0) {
     console.log('');
-    await createNewSharedModule(sharedDir);
+    const createdFiles = await createNewSharedModule(rootDir);
+    
+    // Check if we need to add files to Git
+    if (createdFiles.length > 0 && isGitRepository(rootDir)) {
+      console.log('');
+      
+      let promptMessage = '';
+      if (createdFiles.length === 1) {
+        promptMessage = `Would you like to add the file \"${createdFiles[0]}\" to Git?`;
+      } else {
+        promptMessage = `Would you like to add ${createdFiles.length} files to Git?`;
+      }
+      
+      const shouldAddToGit = await askYesNo(promptMessage);
+      
+      if (shouldAddToGit) {
+        addFilesToGit(rootDir, createdFiles);
+      }
+    }
+    
     return;
   }
 
@@ -390,10 +520,20 @@ async function main() {
 
   // Output the final selection
   console.log('');
-  console.log(chalk.green('✅ Selected project type:'), chalk.bold(`${selectedProject} (${packageManager})`));
+  console.log(chalk.green('✅ Selected project type:'), chalk.bold(`${selectedProject}`));
 
   // Create the new project, passing rootDir, selectedProject and packageManager
-  await createNewProject(rootDir, selectedProject, packageManager);
+  const projectDir = await createNewProject(rootDir, selectedProject, packageManager);
+  
+  // Check if createNewProject returned a project directory and if it's under Git control
+  if (projectDir && isGitRepository(rootDir)) {
+    console.log('');
+    const shouldAddToGit = await askYesNo(`Would you like to add the directory "${projectDir}" to Git?`);
+    
+    if (shouldAddToGit) {
+      addFilesToGit(rootDir, [projectDir]);
+    }
+  }
 }
 
 // Execute the main function

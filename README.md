@@ -36,7 +36,7 @@ To create your own monorepo based on this template, follow these steps:
    ```bash
    git init
    git add .
-   git commit -m "Add TypeScript monorepo structure
+   git commit -m "Add TypeScript monorepo structure"
    git remote add origin url/to/your/repository.git
    git push origin main
    ```
@@ -125,11 +125,11 @@ Our template doesn't restrict you in any way. You're free to create symlinks man
 
 For dependency initialization, both locally or on a build server, instead of the usual `npm/yarn/pnpm install`, we recommend using the universal `setup.cmd` script (Windows: run it directly, Linux/macOS: run with `sh ./setup.cmd`). This script initializes symlinks, downloads development dependencies to the _node_modules_ in the root directory, and places compact **production** dependencies in the project directory's _node_modules_. This approach isolates projects from each other, making builds faster and consuming less disk space.
 
-For most cases, running the `setup.cmd` script without any parameters will be sufficient as it will initialize the entire monorepo. The complete script syntax is: `setup.cmd [project] [--npm|--yarn|--pnpm|--remove]`. If you specify a project name, the script will initialize only that specific project instead of the entire monorepo. You can also specify which package manager to use: `npm` (default), `yarn`, or `pnpm`. Using the `--remove` option will delete the project files along with related scripts and VSCode configurations. Additionally, if the project is under Git version control, it will also be removed from the repository.
+For most cases, running the `setup.cmd` script without any parameters will be sufficient as it will initialize the entire monorepo. The complete script syntax is: `setup.cmd [project] [--npm|--yarn|--pnpm|--remove]`. If you specify a project name, the script will initialize only that specific project instead of the entire monorepo. You can also specify which package manager to use: `npm` (default), `yarn`, or `pnpm`. Using the `--remove` option will delete the project files along with related scripts and VSCode configurations. Additionally, if the project is under Git version control, it will also be removed from the repository. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
 
 ## Multi-Framework Support
 
-The monorepo architecture doesn't limit what frameworks you can add, but with the built-in `create-new.cmd` script, you can easily initialize a wide variety of project types:
+The monorepo architecture doesn't limit what frameworks you can add, but with the built-in `create-new.cmd` script, you can easily initialize a wide variety of project types and add the generated files to Git:
 
 - Shared module
 - Empty Node.js
@@ -140,7 +140,9 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 
 ![Project Creation Menu](./packages/shared/cli/create-new-menu.png)
 
-Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. The script `create-new.cmd`, as well as `setup.cmd`, allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note**: On Windows, creating symlinks may require administrator privileges.
+Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. The script `create-new.cmd`, as well as `setup.cmd`, allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
+
+
 
 ## Contributing
 

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const os = require('os');
+const readline = require('readline');
 
 // Check if script is running as administrator (Windows only)
 function isAdminWindows() {
@@ -96,8 +97,27 @@ function isGitRepository(dirPath) {
   }
 }
 
+// Create readline interface for user input
+function createReadlineInterface() {
+  return readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+}
+
+// Function to ask for user confirmation
+function askForConfirmation(question) {
+  return new Promise((resolve) => {
+    const rl = createReadlineInterface();
+    rl.question(`${question} (y/n): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    });
+  });
+}
+
 // Remove a package and all related configurations
-function removePackage(rootDir, projectSlug) {
+async function removePackage(rootDir, projectSlug) {
   const packageDir = path.join(rootDir, 'packages', projectSlug);
   
   // Check if package directory exists
@@ -105,6 +125,18 @@ function removePackage(rootDir, projectSlug) {
     console.error(`Error: Package directory does not exist: ${packageDir}`);
     process.exit(1);
   }
+  
+  // Ask for confirmation before proceeding
+  const confirmed = await askForConfirmation(
+    `Are you sure you want to remove project "packages/${projectSlug}" and all related configurations?`
+  );
+  
+  if (!confirmed) {
+    console.log('Operation cancelled by user.');
+    process.exit(0);
+  }
+  
+  console.log(`Proceeding with removal of packages/${projectSlug}...`);
   
   // Check if directory is part of a Git repository
   const isGitRepo = isGitRepository(packageDir);
@@ -143,7 +175,7 @@ function removePackage(rootDir, projectSlug) {
     process.exit(1);
   }
   
-  // 2. Remove workspace scripts from root package.json
+  // 3. Remove workspace scripts from root package.json
   const rootPackageJsonPath = path.join(rootDir, 'package.json');
   if (fs.existsSync(rootPackageJsonPath)) {
     try {
@@ -180,7 +212,7 @@ function removePackage(rootDir, projectSlug) {
     }
   }
   
-  // 3. Remove tasks for the project from .vscode/tasks.json
+  // 4. Remove tasks for the project from .vscode/tasks.json
   const tasksJsonPath = path.join(rootDir, '.vscode', 'tasks.json');
   if (fs.existsSync(tasksJsonPath)) {
     try {
@@ -210,7 +242,7 @@ function removePackage(rootDir, projectSlug) {
     }
   }
   
-  // 4. Remove launch configurations for the project from .vscode/launch.json
+  // 5. Remove launch configurations for the project from .vscode/launch.json
   const launchJsonPath = path.join(rootDir, '.vscode', 'launch.json');
   if (fs.existsSync(launchJsonPath)) {
     try {
@@ -275,26 +307,29 @@ function setupPackage(packageDir, packageManager) {
   createRelativeSymlink(sharedDir, sharedLink);
 }
 
-// Parse command line arguments
+/**
+ * Parse command line arguments based on the logic from create-new.js
+ * @returns {Object} Parsed arguments
+ */
 function parseArguments() {
   const args = process.argv.slice(2);
   let projectSlug = null;
-  let packageManager = 'npm';
   let remove = false;
   
   // Determine the rootDir as "../../../" relative to the current script
   const scriptDir = path.dirname(require.main.filename);
   const rootDir = path.resolve(scriptDir, '../../..');
   
-  // Validate arguments
+  // Variables to check for explicit package manager selection
+  let explicitPackageManager = null;
+  
+  // Process all arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     
-    // Check if this is a package manager argument
     if (arg === '--npm' || arg === '--yarn' || arg === '--pnpm') {
-      packageManager = arg.substring(2); // Remove the '--' prefix
+      explicitPackageManager = arg.substring(2); // Remove the '--' prefix
     } 
-    // Check if this is the remove command
     else if (arg === '--remove') {
       remove = true;
     }
@@ -315,12 +350,33 @@ function parseArguments() {
     console.error(`Error: Root directory not found: ${rootDir}`);
     process.exit(1);
   }
+
+  // Determine package manager based on lock files if not explicitly specified
+  let packageManager = 'npm'; // Default to npm
+  if (explicitPackageManager) {
+    // Use explicitly specified package manager from command line
+    packageManager = explicitPackageManager;
+  } else {
+    // Check for lock files to determine which package manager to use
+    const pnpmLockPath = path.join(rootDir, 'pnpm-lock.yaml');
+    const yarnLockPath = path.join(rootDir, 'yarn.lock');
+    
+    if (fs.existsSync(pnpmLockPath)) {
+      packageManager = 'pnpm';
+      console.log('Found pnpm-lock.yaml, using \x1b[1mpnpm\x1b[0m as package manager');
+    } else if (fs.existsSync(yarnLockPath)) {
+      packageManager = 'yarn';
+      console.log('Found yarn.lock, using \x1b[1myarn\x1b[0m as package manager');
+    } else {
+      console.log('No lock file found, using \x1b[1mnpm\x1b[0m as default package manager');
+    }
+  }
   
   // If projectSlug is provided, validate it
   if (projectSlug !== null) {
     // Ensure projectSlug is not 'shared'
     if (projectSlug === 'shared') {
-      console.error('Error: projectSlug cannot be "shared"');
+      console.error('Error: project cannot be "shared"');
       process.exit(1);
     }
     
@@ -339,9 +395,12 @@ function parseArguments() {
     process.exit(1);
   }
   
-  // Check if the specified package manager is installed (if not removing)
+  // Verify that the selected package manager is installed (if not removing)
   if (!remove && !isPackageManagerInstalled(packageManager)) {
     console.error(`Error: ${packageManager} is not installed or not available in the system path`);
+    
+    // Display usage message based on OS
+    showUsage();
     process.exit(1);
   }
   
@@ -358,7 +417,7 @@ function showUsage() {
 }
 
 // Main script logic
-function main() {
+async function main() {
   // Ensure the script is run as administrator on Windows
   if (os.platform() === 'win32' && !isAdminWindows()) {
     console.error('Error: This script must be run as Administrator on Windows.');
@@ -370,7 +429,7 @@ function main() {
   
   // If --remove option is specified, remove the package and exit
   if (remove) {
-    removePackage(rootDir, projectSlug);
+    await removePackage(rootDir, projectSlug);
     return;
   }
   
@@ -405,5 +464,8 @@ function main() {
   }
 }
 
-// Execute the main function
-main();
+// Execute the main function and handle any uncaught errors
+main().catch(err => {
+  console.error('Unhandled error:', err);
+  process.exit(1);
+});

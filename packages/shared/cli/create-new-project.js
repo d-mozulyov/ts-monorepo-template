@@ -63,6 +63,7 @@ const defaultDependencies = {
  * @param {string} rootDir - Root directory of the monorepo
  * @param {string} projectType - Type of project to create
  * @param {string} packageManager - Package manager to use ('npm', 'yarn', or 'pnpm')
+ * @returns {string} - Path to the created project directory or empty string if creation failed
  */
 async function createNewProject(rootDir, projectType, packageManager) {
   // Validate project type
@@ -76,7 +77,7 @@ async function createNewProject(rootDir, projectType, packageManager) {
   if (!validProjectTypes.includes(projectType)) {
     console.error(`Invalid project type: ${projectType}`);
     console.error(`Valid project types: ${validProjectTypes.join(', ')}`);
-    return;
+    process.exit(1);
   }
 
   const rl = readline.createInterface({
@@ -143,7 +144,8 @@ async function createNewProject(rootDir, projectType, packageManager) {
       isValidSlug = true;
     }
 
-    const projectDir = path.join(rootDir, 'packages', slug);
+    const projectLocalDir = path.join('packages', slug);
+    const projectDir = path.join(rootDir, projectLocalDir);
 
     // Create project
     console.log(`Creating ${projectType} project "${projectName}" in ${projectDir}...`);
@@ -227,8 +229,12 @@ async function createNewProject(rootDir, projectType, packageManager) {
     }
 
     console.log(`Project "${projectName}" successfully created!`);
+    
+    // Return the project local directory path on success
+    return projectLocalDir;
   } catch (error) {
     console.error('Error creating project:', error);
+    process.exit(1);
   } finally {
     rl.close();
   }
@@ -707,7 +713,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(\`Server running at http://localhost:\${port}\`);
+  console.log('Server running at http://localhost:' + \${port});
 });
 
 export default app;`
@@ -963,7 +969,7 @@ app.use('messages', {
 // Start the server
 const port = process.env.PORT || 3030;
 app.listen(port, () => {
-  console.log(\`Feathers server running on http://localhost:\${port}\`);
+  console.log('Feathers server running on http://localhost:' + \${port});
 });
 
 export default app;`
