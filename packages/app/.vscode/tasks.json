@@ -31,35 +31,9 @@
       "problemMatcher": "$tsc"
     },
     {
-      "label": "Clean App",
+      "label": "Start",
       "type": "shell",
-      "command": "npm run clean:app",
-      "group": "none"
-    },
-    {
-      "label": "Lint App",
-      "type": "shell",
-      "command": "npm run lint:app",
-      "group": "test",
-      "problemMatcher": "$eslint-stylish"
-    },
-    {
-      "label": "Test App",
-      "type": "shell",
-      "command": "npm run test:app",
-      "group": "test"
-    },
-    {
-      "label": "Build App",
-      "type": "shell",
-      "command": "npm run build:app",
-      "group": "build",
-      "problemMatcher": "$tsc"
-    },
-    {
-      "label": "Start App",
-      "type": "shell",
-      "command": "npm run start:app",
+      "command": "npm run start",
       "group": "none"
     }
   ]

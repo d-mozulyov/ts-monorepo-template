@@ -1,67 +1,156 @@
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
+import globals from "globals";
+import tseslint from "typescript-eslint";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+// Get current directory path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Create FlatCompat instance to support importing legacy presets and plugins
+const compat = new FlatCompat({
+  recommendedConfig: tseslint.configs.recommended,
+  allConfig: tseslint.configs.all,
+});
+
+// Setup file patterns for monorepo
+const basePatterns = [
+  "packages/*/src/**/*.ts",
+  "packages/*/src/**/*.tsx",
+  // Don't lint files in node_modules and dist
+  "!**/node_modules/**",
+  "!**/dist/**",
+];
 
 export default [
+  // Parser options for TypeScript
   {
-    // Set language and environment options
     languageOptions: {
-      parser: tsParser,
+      parser: tseslint.parser,
       parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        project: './tsconfig.json',
-        tsconfigRootDir: import.meta.dirname,
+        project: ["./tsconfig.json", "./packages/*/tsconfig.json"],
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
-      ecmaVersion: 2022,
-      sourceType: 'module',
       globals: {
-        // Define global variables if needed
-        console: 'readonly',
-        process: 'readonly',
+        ...globals.node,
+        ...globals.commonjs,
       },
     },
-    // Use all recommended rules from the TypeScript ESLint plugin
-    plugins: {
-      '@typescript-eslint': tseslint,
-    },
-    // Extend recommended configurations
-    rules: {
-      ...tseslint.configs['recommended'].rules,
-      ...tseslint.configs['recommended-requiring-type-checking'].rules,
-      
-      // Customize rules as needed
-      'no-console': 'warn', // Warn about console statements
-      'prefer-const': 'error', // Require const for variables not reassigned
-      'no-unused-vars': 'off', // Turn off base rule
-      '@typescript-eslint/no-unused-vars': ['error', { // Use TS-specific version
-        'argsIgnorePattern': '^_',
-        'varsIgnorePattern': '^_',
-      }],
-      '@typescript-eslint/explicit-function-return-type': ['warn', {
-        'allowExpressions': true,
-        'allowTypedFunctionExpressions': true,
-      }],
-      '@typescript-eslint/no-explicit-any': 'warn', // Discourage using 'any' type
-      '@typescript-eslint/no-floating-promises': 'error', // Require promise handling
-      '@typescript-eslint/ban-ts-comment': ['warn', {
-        'ts-ignore': 'allow-with-description', // Allow with explanation
-        'minimumDescriptionLength': 10,
-      }],
-    },
-    // Ignore patterns
-    ignores: [
-      'node_modules/**',
-      'dist/**',
-      'build/**',
-      'coverage/**',
-      '**/*.js',  // Ignore JS files if needed
-    ],
   },
-  // Add overrides for specific file patterns if needed
+
+  // Apply recommended TypeScript rules
+  ...tseslint.configs.recommended,
+
+  // Import plugins via FlatCompat
+  ...compat.extends(
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript"
+  ),
+
+  // Core rules for all TypeScript files
   {
-    files: ['**/*.test.ts', '**/*.spec.ts'],
+    files: basePatterns,
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' in test files
+      // Basic JavaScript rules
+      "no-console": ["warn", { allow: ["warn", "error", "info"] }],
+      "no-unused-vars": "off", // Disabled in favor of @typescript-eslint/no-unused-vars
+      "prefer-const": "error",
+      "no-var": "error",
+      "eqeqeq": ["error", "always", { null: "ignore" }],
+      "curly": ["error", "all"],
+      "quotes": ["error", "single", { avoidEscape: true }],
+      "semi": ["error", "always"],
+      "comma-dangle": ["error", "always-multiline"],
+
+      // TypeScript specific rules
+      "@typescript-eslint/no-unused-vars": ["error", { 
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_" 
+      }],
+      "@typescript-eslint/explicit-function-return-type": ["warn", {
+        allowExpressions: true,
+        allowTypedFunctionExpressions: true,
+      }],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/consistent-type-imports": ["error", {
+        prefer: "type-imports",
+        disallowTypeAnnotations: false,
+      }],
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-expect-error": "allow-with-description",
+          "ts-ignore": "allow-with-description",
+          "minimumDescriptionLength": 3
+        },
+      ],
+      
+      // Import rules
+      "import/no-unresolved": "error",
+      "import/no-named-as-default": "off", // Turn off the warning about named exports vs default exports
+      "import/order": [
+        "error",
+        {
+          "groups": [
+            "builtin",
+            "external",
+            "internal",
+            "parent",
+            "sibling",
+            "index"
+          ],
+          "newlines-between": "never",
+          "alphabetize": {
+            "order": "asc",
+            "caseInsensitive": true
+          }
+        }
+      ],
+      "import/no-duplicates": "error",
     },
+  },
+
+  // Special rules for test files
+  {
+    files: ["packages/*/src/**/*.test.ts", "packages/*/src/**/*.spec.ts"],
+    rules: {
+      // Relaxed rules for test files
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-console": "off",
+    },
+  },
+
+  // Type checking rules only for TypeScript files
+  {
+    files: ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"],
+    rules: {
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
+      "@typescript-eslint/no-unnecessary-condition": "error",
+    },
+    languageOptions: {
+      parserOptions: {
+        project: ["./tsconfig.json", "./packages/*/tsconfig.json"],
+      },
+    },
+  },
+
+  // Completely ignore certain files
+  {
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/*.js",
+      "**/*.cjs",
+      "**/*.mjs",
+      "**/coverage/**",
+    ],
   },
 ];

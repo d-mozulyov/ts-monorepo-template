@@ -62,10 +62,9 @@ const defaultDependencies = {
  * Creates a new project in the monorepo
  * @param {string} rootDir - Root directory of the monorepo
  * @param {string} projectType - Type of project to create
- * @param {string} packageManager - Package manager to use ('npm', 'yarn', or 'pnpm')
  * @returns {string} - Path to the created project directory or empty string if creation failed
  */
-async function createNewProject(rootDir, projectType, packageManager) {
+async function createNewProject(rootDir, projectType) {
   // Validate project type
   const validProjectTypes = [
     'Empty Node.js', 'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte', 
@@ -89,12 +88,12 @@ async function createNewProject(rootDir, projectType, packageManager) {
   const question = (query) => new Promise((resolve) => rl.question(query, resolve));
 
   try {
-    // Get project name
+    // Read project name
     let projectName = '';
-    let isValidProjectName = false;
-
-    while (!isValidProjectName) {
-      projectName = await question('Enter project name (e.g. "My App"): ');
+    let projectLocalDir = '';
+    let projectDir = '';
+    while (true) {
+      projectName = await question('Enter project name (e.g. "my-app"): ');
       projectName = projectName.trim();
 
       // Validate project name
@@ -103,131 +102,33 @@ async function createNewProject(rootDir, projectType, packageManager) {
         continue;
       }
 
-      // Check if the project name already exists in launch.json or tasks.json
-      isValidProjectName = await validateProjectName(rootDir, projectName);
-      if (!isValidProjectName) {
-        console.error('Please choose a different project name');
-      }
-    }
-
-    // Calculate and validate slug
-    let defaultSlug = calculateSlug(projectName);
-    let slug = await question(`Enter project slug (default: "${defaultSlug}"): `);
-    slug = slug.trim() || defaultSlug;
-
-    let isValidSlug = false;
-    while (!isValidSlug) {
-      // Validate slug
-      if (!slug) {
-        console.error('Slug cannot be empty');
-        slug = await question(`Enter project slug (default: "${defaultSlug}"): `);
-        slug = slug.trim() || defaultSlug;
+      // Regexp check  
+      if (!/^[a-z0-9-_]+$/i.test(projectName)) {
+        console.error('Project name can only contain letters, numbers, hyphens, and underscores');
         continue;
       }
 
-      if (!/^[a-z0-9-_]+$/i.test(slug)) {
-        console.error('Slug can only contain letters, numbers, hyphens, and underscores');
-        slug = await question(`Enter project slug: `);
-        slug = slug.trim();
-        continue;
-      }
+      // Paths
+      projectLocalDir = path.join('packages', projectName);
+      projectDir = path.join(rootDir, projectLocalDir);
 
       // Check if directory already exists
-      const projectDir = path.join(rootDir, 'packages', slug);
       if (fs.existsSync(projectDir)) {
         console.error(`Directory already exists: ${projectDir}`);
-        slug = await question(`Enter project slug: `);
-        slug = slug.trim();
         continue;
       }
 
-      isValidSlug = true;
+      // Done
+      break;
     }
-
-    const projectLocalDir = path.join('packages', slug);
-    const projectDir = path.join(rootDir, projectLocalDir);
-
-    // Create project
-    console.log(`Creating ${projectType} project "${projectName}" in ${projectDir}...`);
-    
+   
     // Create project directory
     fs.mkdirSync(projectDir, { recursive: true });
 
     // Create project based on type
-    await createProjectByType(rootDir, projectDir, slug, projectType);
+    await createProjectByType(rootDir, projectDir, projectName, projectType);
 
-    // Create symlink to shared directory
-    const sharedDir = path.join(rootDir, 'packages', 'shared');
-    const sharedSymlink = path.join(projectDir, 'src', '@shared');
-
-    // Ensure src directory exists
-    const srcDir = path.join(projectDir, 'src');
-    if (!fs.existsSync(srcDir)) {
-      fs.mkdirSync(srcDir, { recursive: true });
-    }
-
-    // Create symlink
-    createSymlink(sharedDir, sharedSymlink);
-
-    // Update monorepo configuration
-    await updateMonorepoConfig(rootDir, projectDir, projectName, slug);
-
-    // Verify package.json exists and contains required scripts
-    try {
-      // Check if package.json exists in the project
-      const packageJsonPath = path.join(projectDir, 'package.json');
-      if (fs.existsSync(packageJsonPath)) {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        
-        // Ensure scripts object exists
-        if (!packageJson.scripts) {
-          packageJson.scripts = {};
-        }
-        
-        // Required scripts based on monorepo pattern
-        const requiredScripts = {
-          clean: 'rimraf ./dist',
-          lint: 'eslint src --ext .ts,.tsx',
-          test: 'jest',
-          build: 'tsc',
-          start: 'node ./dist/index.js',
-          dev: 'tsc && node ./dist/index.js'
-        };
-        
-        // Add missing scripts
-        let scriptsModified = false;
-        for (const [scriptName, defaultCommand] of Object.entries(requiredScripts)) {
-          if (!packageJson.scripts[scriptName]) {
-            packageJson.scripts[scriptName] = defaultCommand;
-            scriptsModified = true;
-          }
-        }
-        
-        // If scripts were added, update package.json
-        if (scriptsModified) {
-          fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-          console.log('Updated package.json with required scripts');
-        }
-      } else {
-        console.warn('package.json not found in the project');
-      }
-    } catch (error) {
-      console.error('Error updating package.json:', error);
-      throw error;
-    }
-    
-    // Update tsconfig.json for proper monorepo integration
-    updateTsConfig(rootDir, projectDir);
-
-    // Install project dependencies
-    if (!installPackageDependencies(projectDir, false, packageManager)) {
-      process.exit(1);
-    }
-    // Update root dependencies, including development ones, for the entire monorepo
-    if (!installPackageDependencies(rootDir, true, packageManager)) {
-      process.exit(1);
-    }
-
+    // Done
     console.log(`Project "${projectName}" successfully created!`);
     
     // Return the project local directory path on success
@@ -241,84 +142,14 @@ async function createNewProject(rootDir, projectType, packageManager) {
 }
 
 /**
- * Validates if the project name already exists in launch.json or tasks.json
- * @param {string} rootDir - Root directory of the monorepo
- * @param {string} projectName - Name of the project to validate
- * @returns {boolean} - True if valid, false if already exists
- */
-async function validateProjectName(rootDir, projectName) {
-  // Check launch.json
-  const launchJsonPath = path.join(rootDir, '.vscode', 'launch.json');
-  if (fs.existsSync(launchJsonPath)) {
-    try {
-      const launchJson = JSON.parse(fs.readFileSync(launchJsonPath, 'utf8'));
-      const debugConfig = launchJson.configurations.find(config => 
-        config.name.toLowerCase() === `Debug ${projectName}`.toLowerCase()
-      );
-      
-      if (debugConfig) {
-        console.error(`Configuration "Debug ${projectName}" already exists in launch.json`);
-        return false;
-      }
-    } catch (error) {
-      console.warn(`Warning: Could not parse launch.json: ${error.message}`);
-    }
-  }
-
-  // Check tasks.json
-  const tasksJsonPath = path.join(rootDir, '.vscode', 'tasks.json');
-  if (fs.existsSync(tasksJsonPath)) {
-    try {
-      const tasksJson = JSON.parse(fs.readFileSync(tasksJsonPath, 'utf8'));
-      const taskNames = [
-        `Clean ${projectName}`,
-        `Lint ${projectName}`,
-        `Test ${projectName}`,
-        `Build ${projectName}`,
-        `Start ${projectName}`
-      ];
-
-      for (const taskName of taskNames) {
-        const existingTask = tasksJson.tasks.find(task => 
-          task.label.toLowerCase() === taskName.toLowerCase()
-        );
-        
-        if (existingTask) {
-          console.error(`Task "${taskName}" already exists in tasks.json`);
-          return false;
-        }
-      }
-    } catch (error) {
-      console.warn(`Warning: Could not parse tasks.json: ${error.message}`);
-    }
-  }
-
-  return true;
-}
-
-/**
- * Calculates slug from project name
- * @param {string} projectName - Name of the project
- * @returns {string} - Calculated slug
- */
-function calculateSlug(projectName) {
-  return projectName
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-    .replace(/-+/g, '-')      // Replace multiple hyphens with a single one
-    .trim();
-}
-
-/**
  * Creates project based on its type
  * @param {string} rootDir - Root directory of the monorepo
  * @param {string} projectDir - Project directory
- * @param {string} slug - Project slug
+ * @param {string} projectName - Project name in slug format
  * @param {string} projectType - Type of project to create
  */
-async function createProjectByType(rootDir, projectDir, slug, projectType) {
-  const packageName = `@monorepo/${slug}`;
+async function createProjectByType(rootDir, projectDir, projectName, projectType) {
+  const packageName = `@monorepo/${projectName}`;
 
   switch (projectType) {
     case 'Empty Node.js':
@@ -388,8 +219,26 @@ async function createProjectByType(rootDir, projectDir, slug, projectType) {
       throw new Error(`Unsupported project type: ${projectType}`);
   }
 
-  // Ensure project has proper tsconfig.json
-  updateTsConfig(rootDir, projectDir);
+  // Create symlink to shared directory
+  const sharedDir = path.join(rootDir, 'packages', 'shared');
+  const sharedSymlink = path.join(projectDir, 'src', '@shared');
+  const srcDir = path.join(projectDir, 'src');
+  if (!fs.existsSync(srcDir)) {
+    fs.mkdirSync(srcDir, { recursive: true });
+  }
+  createSymlink(sharedDir, sharedSymlink);
+
+  // Verify package.json exists and contains required scripts
+  updateProjectPackage(projectDir);
+    
+  // Update tsconfig.json for proper monorepo integration
+  updateProjectTSConfig(projectDir);
+
+  // VSCode configurations
+  createProjectVSCodeConfigs(projectDir);
+
+  // Update monorepo package configuration
+  await updateMonorepoPackage(rootDir, projectName);
 }
 
 /**
@@ -403,25 +252,7 @@ async function createEmptyNodeProject(projectDir, packageName) {
     "name": packageName,
     "version": "1.0.0",
     "private": true,
-    "scripts": {
-      "build": "tsc",
-      "clean": "rimraf ./dist",
-      "lint": "eslint src --ext .ts",
-      "test": "jest --passWithNoTests",
-      "start": "node ./dist/index.js",
-      "dev": "tsc && node ./dist/index.js"
-    },
-    "devDependencies": {
-      "@types/jest": defaultDependencies['@types/jest'],
-      "@types/node": defaultDependencies['@types/node'],
-      "@typescript-eslint/eslint-plugin": defaultDependencies['@typescript-eslint/eslint-plugin'],
-      "@typescript-eslint/parser": defaultDependencies['@typescript-eslint/parser'],
-      "eslint": defaultDependencies['eslint'],
-      "jest": defaultDependencies['jest'],
-      "rimraf": defaultDependencies['rimraf'],
-      "ts-jest": defaultDependencies['ts-jest'],
-      "typescript": defaultDependencies['typescript']
-    },
+    "scripts": {},
     "dependencies": {}
   };
   
@@ -484,10 +315,7 @@ async function createReactProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@testing-library/react'] = defaultDependencies['@testing-library/react'];
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+       
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating React project:', error);
@@ -522,14 +350,10 @@ async function createNextJsProject(projectDir, packageName) {
     if (!packageJson.scripts.test) {
       packageJson.scripts.test = 'jest';
       // Add testing dependencies if they don't exist
-      packageJson.devDependencies['jest'] = defaultDependencies['jest'];
       packageJson.devDependencies['@testing-library/react'] = defaultDependencies['@testing-library/react'];
       packageJson.devDependencies['@testing-library/jest-dom'] = defaultDependencies['@testing-library/jest-dom'];
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+     
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Next.js project:', error);
@@ -558,12 +382,7 @@ async function createAngularProject(projectDir, packageName) {
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
     }
-    
-    // Add rimraf for clean script
-    if (!packageJson.devDependencies.rimraf) {
-      packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    }
-    
+      
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Angular project:', error);
@@ -601,10 +420,7 @@ async function createVueProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@vue/test-utils'] = defaultDependencies['@vue/test-utils'];
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+       
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Vue.js project:', error);
@@ -642,10 +458,7 @@ async function createSvelteProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@testing-library/svelte'] = defaultDependencies['@testing-library/svelte'];
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+   
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Svelte project:', error);
@@ -679,7 +492,7 @@ async function createExpressProject(projectDir, packageName) {
     dependencies: {
       'express': defaultDependencies['express'],
       '@types/express': defaultDependencies['@types/express']
-    },
+    }/*,
     devDependencies: {
       '@types/node': defaultDependencies['@types/node'],
       'typescript': defaultDependencies['typescript'],
@@ -692,7 +505,7 @@ async function createExpressProject(projectDir, packageName) {
       'ts-jest': defaultDependencies['ts-jest'],
       'supertest': defaultDependencies['supertest'],
       '@types/supertest': defaultDependencies['@types/supertest']
-    }
+    }*/
   };
 
   fs.writeFileSync(
@@ -713,7 +526,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log('Server running at http://localhost:' + \${port});
+  console.log('Server running at http://localhost:' + port);
 });
 
 export default app;`
@@ -789,7 +602,7 @@ async function createFastifyProject(projectDir, packageName) {
     },
     dependencies: {
       'fastify': defaultDependencies['fastify']
-    },
+    }/*,
     devDependencies: {
       '@types/node': defaultDependencies['@types/node'],
       'typescript': defaultDependencies['typescript'],
@@ -800,7 +613,7 @@ async function createFastifyProject(projectDir, packageName) {
       'jest': defaultDependencies['jest'],
       '@types/jest': defaultDependencies['@types/jest'],
       'ts-jest': defaultDependencies['ts-jest']
-    }
+    }*/
   };
 
   fs.writeFileSync(
@@ -879,10 +692,7 @@ async function createAdonisJsProject(projectDir, packageName) {
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf build';
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+   
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating AdonisJS project:', error);
@@ -921,7 +731,7 @@ async function createFeathersJsProject(projectDir, packageName) {
         '@feathersjs/feathers': defaultDependencies['@feathersjs/feathers'],
         '@feathersjs/express': defaultDependencies['@feathersjs/express'],
         '@feathersjs/socketio': defaultDependencies['@feathersjs/socketio']
-      },
+      }/*,
       devDependencies: {
         '@types/node': defaultDependencies['@types/node'],
         'typescript': defaultDependencies['typescript'],
@@ -932,7 +742,7 @@ async function createFeathersJsProject(projectDir, packageName) {
         'jest': defaultDependencies['jest'],
         '@types/jest': defaultDependencies['@types/jest'],
         'ts-jest': defaultDependencies['ts-jest']
-      }
+      }*/
     };
   
     fs.writeFileSync(
@@ -969,7 +779,7 @@ app.use('messages', {
 // Start the server
 const port = process.env.PORT || 3030;
 app.listen(port, () => {
-  console.log('Feathers server running on http://localhost:' + \${port});
+  console.log('Feathers server running on http://localhost:' + port);
 });
 
 export default app;`
@@ -1023,10 +833,7 @@ async function createReactNativeProject(projectDir, packageName) {
     if (!packageJson.scripts.build) {
       packageJson.scripts.build = 'tsc';
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+       
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating React Native project:', error);
@@ -1061,16 +868,12 @@ async function createExpoProject(projectDir, packageName) {
     if (!packageJson.scripts.test) {
       packageJson.scripts.test = 'jest';
       // Add testing dependencies if they don't exist
-      packageJson.devDependencies['jest'] = defaultDependencies['jest'];
       packageJson.devDependencies['@testing-library/react-native'] = defaultDependencies['@testing-library/react-native'];
     }
     if (!packageJson.scripts.build) {
       packageJson.scripts.build = 'expo export:web';
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+       
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Expo project:', error);
@@ -1104,14 +907,8 @@ async function createNativeScriptProject(projectDir, packageName) {
     }
     if (!packageJson.scripts.test) {
       packageJson.scripts.test = 'jest';
-      // Add testing dependencies if they don't exist
-      packageJson.devDependencies['jest'] = defaultDependencies['jest'];
-      packageJson.devDependencies['@types/jest'] = defaultDependencies['@types/jest'];
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+   
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating NativeScript project:', error);
@@ -1140,10 +937,7 @@ async function createIonicProject(projectDir, packageName) {
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf build';
     }
-    
-    // Add rimraf for clean script
-    packageJson.devDependencies['rimraf'] = defaultDependencies['rimraf'];
-    
+   
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Ionic project:', error);
@@ -1215,15 +1009,9 @@ async function createElectronProject(projectDir, packageName) {
       devDependencies: {
         '@types/react': defaultDependencies['@types/react'],
         '@types/react-dom': defaultDependencies['@types/react-dom'],
-        '@types/node': defaultDependencies['@types/node'],
-        'typescript': defaultDependencies['typescript'],
         'vite': defaultDependencies['vite'],
         '@vitejs/plugin-react': defaultDependencies['@vitejs/plugin-react'],
-        'electron-builder': defaultDependencies['electron-builder'],
-        'rimraf': defaultDependencies['rimraf'],
-        'eslint': defaultDependencies['eslint'],
-        'jest': defaultDependencies['jest'],
-        '@types/jest': defaultDependencies['@types/jest']
+        'electron-builder': defaultDependencies['electron-builder']
       }
     };
     
@@ -1622,13 +1410,218 @@ function createSymlink(target, linkPath) {
 }
 
 /**
- * Updates the monorepo configuration to include the new project
- * @param {string} rootDir - Root directory of the monorepo
+ * Updates package.json with required scripts for a project
  * @param {string} projectDir - Project directory
- * @param {string} projectName - Project name
- * @param {string} slug - Project slug
  */
-async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
+function updateProjectPackage(projectDir) {
+  try {
+    // Check if package.json exists in the project
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      
+      // Ensure scripts object exists
+      if (!packageJson.scripts) {
+        packageJson.scripts = {};
+      }
+      
+      // Required scripts based on monorepo pattern
+      const requiredScripts = {
+        clean: 'rimraf ./dist',
+        lint: 'eslint ./src',
+        test: 'jest --passWithNoTests --config=../../jest.config.js',
+        build: 'tsc',
+        start: 'node ./dist/index.js',
+        dev: 'tsc && node ./dist/index.js'
+      };
+
+      // Add missing scripts
+      for (const [scriptName, existingCommand] of Object.entries(packageJson.scripts || {})) {
+        requiredScripts[scriptName] = existingCommand;
+      }
+      packageJson.scripts = requiredScripts;
+
+      // Update package.json
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    } else {
+      console.warn('package.json not found in the project');
+    }
+  } catch (error) {
+    console.error('Error updating package.json:', error);
+    throw error;
+  }
+}
+
+/**
+ * Updates or creates the tsconfig.json of the project with proper monorepo settings
+ * @param {string} projectDir - Project directory
+ */
+function updateProjectTSConfig(projectDir) {
+  const projectTsConfigPath = path.join(projectDir, 'tsconfig.json');
+  
+  // Base configuration that all projects should have
+  const baseTsConfig = {
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+      "outDir": "./dist",
+      "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+      "rootDir": "./src"
+    },
+    "include": [
+      "src/**/*"
+    ]
+  };
+
+  try {
+    if (!fs.existsSync(projectTsConfigPath)) {
+      // Create new tsconfig.json if it doesn't exist
+      fs.writeFileSync(projectTsConfigPath, JSON.stringify(baseTsConfig, null, 2));
+      console.log('Created tsconfig.json');
+    } else {
+      // Update existing tsconfig.json
+      const existingConfig = JSON.parse(fs.readFileSync(projectTsConfigPath, 'utf8'));
+      let modified = false;
+
+      // Ensure extends is set correctly
+      if (existingConfig.extends !== baseTsConfig.extends) {
+        existingConfig.extends = baseTsConfig.extends;
+        modified = true;
+      }
+
+      // Ensure compilerOptions exists and has required properties
+      if (!existingConfig.compilerOptions) {
+        existingConfig.compilerOptions = {};
+        modified = true;
+      }
+
+      for (const [key, value] of Object.entries(baseTsConfig.compilerOptions)) {
+        if (!existingConfig.compilerOptions[key] || 
+            (key === 'outDir' && !existingConfig.compilerOptions[key].includes('dist'))) {
+          existingConfig.compilerOptions[key] = value;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        fs.writeFileSync(projectTsConfigPath, JSON.stringify(existingConfig, null, 2));
+        console.log('Updated tsconfig.json with correct structure');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating tsconfig.json:', error);
+  }
+}
+
+/**
+ * Creates VSCode configuration files for the project
+ * @param {string} projectDir - Project directory
+ */
+function createProjectVSCodeConfigs(projectDir) {
+  // Ensure .vscode directory exists
+  const vscodeDir = path.join(projectDir, '.vscode');
+  if (!fs.existsSync(vscodeDir)) {
+    fs.mkdirSync(vscodeDir, { recursive: true });
+  }
+
+  // Create launch.json
+  const launchJson = {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": [
+          "run",
+          "dev"
+        ],
+        "cwd": "${workspaceFolder}",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen"
+      }
+    ]
+  };
+    
+  const launchJsonPath = path.join(projectDir, '.vscode', 'launch.json');
+  fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
+  console.log('Created launch.json');
+   
+  // Create tasks.json
+  const tasksJson = {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Clean",
+        "type": "shell",
+        "command": "npm run clean",
+        "group": "none"
+      },
+      {
+        "label": "Lint",
+        "type": "shell",
+        "command": "npm run lint",
+        "group": "test",
+        "problemMatcher": "$eslint-stylish"
+      },
+      {
+        "label": "Test",
+        "type": "shell",
+        "command": "npm run test",
+        "group": "test"
+      },
+      {
+        "label": "Build",
+        "type": "shell",
+        "command": "npm run build",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": "$tsc"
+      },
+      {
+        "label": "Start",
+        "type": "shell",
+        "command": "npm run start",
+        "group": "none"
+      }
+    ]
+  };
+    
+  const tasksJsonPath = path.join(projectDir, '.vscode', 'tasks.json');
+  fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
+  console.log('Created tasks.json');
+
+  // Create settings.json
+  const settingsJson = {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "eslint.validate": [
+      "typescript"
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "files.exclude": {
+      "dist": true
+    },
+    "search.exclude": {
+      "dist": true
+    }
+  };
+
+  const settingsJsonPath = path.join(projectDir, '.vscode', 'settings.json');
+  fs.writeFileSync(settingsJsonPath, JSON.stringify(settingsJson, null, 2));
+  console.log('Created settings.json');
+}
+
+/**
+ * Updates the monorepo package.json to include the new project
+ * @param {string} rootDir - Root directory of the monorepo
+ * @param {string} projectName - Project name in slug format
+ */
+async function updateMonorepoPackage(rootDir, projectName) {
   // Update root package.json
   const rootPackageJsonPath = path.join(rootDir, 'package.json');
   if (fs.existsSync(rootPackageJsonPath)) {
@@ -1641,298 +1634,17 @@ async function updateMonorepoConfig(rootDir, projectDir, projectName, slug) {
       }
       
       // Based on the provided package.json structure
-      rootPackageJson.scripts[`clean:${slug}`] = `npm run clean --workspace=@monorepo/${slug}`;
-      rootPackageJson.scripts[`lint:${slug}`] = `npm run lint --workspace=@monorepo/${slug}`;
-      rootPackageJson.scripts[`test:${slug}`] = `npm run test --workspace=@monorepo/${slug}`;
-      rootPackageJson.scripts[`build:${slug}`] = `npm run build --workspace=@monorepo/${slug}`;
-      rootPackageJson.scripts[`start:${slug}`] = `npm run start --workspace=@monorepo/${slug}`;
+      rootPackageJson.scripts[`clean:${projectName}`] = `npm run clean --workspace=@monorepo/${projectName}`;
+      rootPackageJson.scripts[`lint:${projectName}`] = `npm run lint --workspace=@monorepo/${projectName}`;
+      rootPackageJson.scripts[`test:${projectName}`] = `npm run test --workspace=@monorepo/${projectName}`;
+      rootPackageJson.scripts[`build:${projectName}`] = `npm run build --workspace=@monorepo/${projectName}`;
+      rootPackageJson.scripts[`start:${projectName}`] = `npm run start --workspace=@monorepo/${projectName}`;
       
       fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2));
       console.log('Updated root package.json');
     } catch (error) {
       console.error('Error updating root package.json:', error);
     }
-  }
-
-  // Update VSCode launch.json to include the new project
-  const launchJsonPath = path.join(rootDir, '.vscode', 'launch.json');
-  if (fs.existsSync(launchJsonPath)) {
-    try {
-      const launchJson = JSON.parse(fs.readFileSync(launchJsonPath, 'utf8'));
-      
-      // Create a new configuration based on the format in launch.json
-      const newConfig = {
-        "type": "node",
-        "request": "launch",
-        "name": `Debug ${projectName}`,
-        "runtimeExecutable": "npm",
-        "runtimeArgs": [
-          "run",
-          "dev"
-        ],
-        "cwd": `$\{workspaceFolder}/packages/${slug}`,
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      };
-      
-      // Add the new configuration
-      launchJson.configurations.push(newConfig);
-      
-      fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
-      console.log('Updated launch.json');
-    } catch (error) {
-      console.error('Error updating launch.json:', error);
-    }
-  } else {
-    console.warn('launch.json not found, creating it');
-    
-    // Create launch.json based on the provided structure
-    const launchJson = {
-      "version": "0.2.0",
-      "configurations": [
-        {
-          "type": "node",
-          "request": "launch",
-          "name": `Debug ${projectName}`,
-          "runtimeExecutable": "npm",
-          "runtimeArgs": [
-            "run",
-            "dev"
-          ],
-          "cwd": `$\{workspaceFolder}/packages/${slug}`,
-          "console": "integratedTerminal",
-          "internalConsoleOptions": "neverOpen"
-        }
-      ]
-    };
-    
-    // Ensure .vscode directory exists
-    const vscodeDir = path.join(rootDir, '.vscode');
-    if (!fs.existsSync(vscodeDir)) {
-      fs.mkdirSync(vscodeDir, { recursive: true });
-    }
-    
-    fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
-    console.log('Created launch.json');
-  }
-
-  // Update VSCode tasks.json
-  const tasksJsonPath = path.join(rootDir, '.vscode', 'tasks.json');
-  if (fs.existsSync(tasksJsonPath)) {
-    try {
-      const tasksJson = JSON.parse(fs.readFileSync(tasksJsonPath, 'utf8'));
-      
-      // Add new tasks based on existing pattern in tasks.json
-      const newTasks = [
-        {
-          "label": `Clean ${projectName}`,
-          "type": "shell",
-          "command": `npm run clean:${slug}`,
-          "group": "none"
-        },
-        {
-          "label": `Lint ${projectName}`,
-          "type": "shell",
-          "command": `npm run lint:${slug}`,
-          "group": "test",
-          "problemMatcher": "$eslint-stylish"
-        },
-        {
-          "label": `Test ${projectName}`,
-          "type": "shell",
-          "command": `npm run test:${slug}`,
-          "group": "test"
-        },
-        {
-          "label": `Build ${projectName}`,
-          "type": "shell",
-          "command": `npm run build:${slug}`,
-          "group": "build",
-          "problemMatcher": "$tsc"
-        },
-        {
-          "label": `Start ${projectName}`,
-          "type": "shell",
-          "command": `npm run start:${slug}`,
-          "group": "none"
-        }
-      ];
-      
-      // Add the new tasks
-      tasksJson.tasks.push(...newTasks);
-      
-      fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
-      console.log('Updated tasks.json');
-    } catch (error) {
-      console.error('Error updating tasks.json:', error);
-    }
-  } else {
-    console.warn('tasks.json not found, creating it');
-    
-    // Create tasks.json based on the provided structure
-    const tasksJson = {
-      "version": "2.0.0",
-      "tasks": [
-        {
-          "label": `Clean ${projectName}`,
-          "type": "shell",
-          "command": `npm run clean:${slug}`,
-          "group": "none"
-        },
-        {
-          "label": `Lint ${projectName}`,
-          "type": "shell",
-          "command": `npm run lint:${slug}`,
-          "group": "test",
-          "problemMatcher": "$eslint-stylish"
-        },
-        {
-          "label": `Test ${projectName}`,
-          "type": "shell",
-          "command": `npm run test:${slug}`,
-          "group": "test"
-        },
-        {
-          "label": `Build ${projectName}`,
-          "type": "shell",
-          "command": `npm run build:${slug}`,
-          "group": "build",
-          "problemMatcher": "$tsc"
-        },
-        {
-          "label": `Start ${projectName}`,
-          "type": "shell",
-          "command": `npm run start:${slug}`,
-          "group": "none"
-        }
-      ]
-    };
-    
-    // Ensure .vscode directory exists
-    const vscodeDir = path.join(rootDir, '.vscode');
-    if (!fs.existsSync(vscodeDir)) {
-      fs.mkdirSync(vscodeDir, { recursive: true });
-    }
-    
-    fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
-    console.log('Created tasks.json');
-  }
-}
-
-/**
- * Updates the tsconfig.json of the project
- * @param {string} rootDir - Root directory of the monorepo
- * @param {string} projectDir - Project directory
- */
-function updateTsConfig(rootDir, projectDir) {
-  const appTsConfigPath = path.join(rootDir, 'packages', 'app', 'tsconfig.json');
-  const projectTsConfigPath = path.join(projectDir, 'tsconfig.json');
-  
-  // Based on the provided app-tsconfig.json, create a proper tsconfig.json
-  if (!fs.existsSync(projectTsConfigPath)) {
-    try {
-      // Create a tsconfig.json similar to the app's
-      const tsConfig = {
-        "extends": "../../tsconfig.json",
-        "compilerOptions": {
-          "outDir": "./dist",
-          "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
-          "rootDir": "./src"
-        },
-        "include": [
-          "src/**/*"
-        ]
-      };
-      
-      fs.writeFileSync(projectTsConfigPath, JSON.stringify(tsConfig, null, 2));
-      console.log('Created tsconfig.json');
-    } catch (error) {
-      console.error('Error creating tsconfig.json:', error);
-    }
-  } else if (fs.existsSync(appTsConfigPath) && fs.existsSync(projectTsConfigPath)) {
-    // If both exist, ensure the project's tsconfig has the correct structure
-    try {
-      const appTsConfig = JSON.parse(fs.readFileSync(appTsConfigPath, 'utf8'));
-      const projectTsConfig = JSON.parse(fs.readFileSync(projectTsConfigPath, 'utf8'));
-      
-      let modified = false;
-      
-      // Ensure extends is set correctly
-      if (projectTsConfig.extends !== "../../tsconfig.json") {
-        projectTsConfig.extends = "../../tsconfig.json";
-        modified = true;
-      }
-      
-      // Ensure compilerOptions are set correctly
-      if (!projectTsConfig.compilerOptions) {
-        projectTsConfig.compilerOptions = appTsConfig.compilerOptions;
-        modified = true;
-      } else {
-        if (!projectTsConfig.compilerOptions.outDir || !projectTsConfig.compilerOptions.outDir.includes("dist")) {
-          projectTsConfig.compilerOptions.outDir = "./dist";
-          modified = true;
-        }
-        if (!projectTsConfig.compilerOptions.tsBuildInfoFile) {
-          projectTsConfig.compilerOptions.tsBuildInfoFile = "./dist/tsconfig.tsbuildinfo";
-          modified = true;
-        }
-        if (!projectTsConfig.compilerOptions.rootDir) {
-          projectTsConfig.compilerOptions.rootDir = "./src";
-          modified = true;
-        }
-      }
-      
-      // Ensure include is set correctly
-      if (!projectTsConfig.include) {
-        projectTsConfig.include = ["src/**/*"];
-        modified = true;
-      }
-      
-      if (modified) {
-        fs.writeFileSync(projectTsConfigPath, JSON.stringify(projectTsConfig, null, 2));
-        console.log('Updated tsconfig.json with correct structure');
-      }
-    } catch (error) {
-      console.error('Error updating tsconfig.json:', error);
-    }
-  }
-}
-
-/**
- * Install package dependencies
- * @param {string} packageDir - Directory containing package.json
- * @param {boolean} [isRoot=false] - True if installing in root directory (without --prefix)
- * @param {string} packageManager - Package manager to use ('npm', 'yarn', or 'pnpm')
- * @returns {boolean} - True if installation was successful
- */
-function installPackageDependencies(packageDir, isRoot, packageManager) {
-  try {
-    // Determine the command based on package manager and installation type
-    let command;
-    
-    switch (packageManager) {
-      case 'npm':
-        command = isRoot ? 'npm install' : 'npm install --omit=dev --prefix .';
-        break;
-      case 'yarn':
-        command = isRoot ? 'yarn install' : 'yarn install --production --cwd .';
-        break;
-      case 'pnpm':
-        command = isRoot ? 'pnpm install --force' : 'pnpm install --prod --dir . --force';
-        break;
-      default:
-        throw new Error(`Unsupported package manager: ${packageManager}`);
-    }
-    
-    // Log the directory and the command that will be executed
-    console.log(`${packageDir}: ${command}`);
-    
-    // Execute the command
-    execSync(command, { cwd: packageDir, stdio: 'inherit' });
-    return true;
-  } catch (err) {
-    console.error(`Error: Failed running package installation in ${packageDir}: ${err.message}`);
-    return false;
   }
 }
 

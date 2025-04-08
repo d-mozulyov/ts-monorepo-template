@@ -98,34 +98,25 @@ Following the same pattern, you can work with any workspace project in the monor
 
 ## VS Code Integration
 
-The monorepo includes pre-configured VS Code settings that enhance development:
-- **Tasks** - All standard package scripts are available as VS Code tasks in `tasks.json`:
-  ```
-  Clean, Lint, Test, Build                                # all applications
-  Clean App, Lint App, Test App, Build App, Start App     # specific application (App)
-  ```
-- **Debugging** - Each project has its own debug configuration in `launch.json`:
-  ```
-  Debug App
-  ```
-- **Editor Settings** - TypeScript-optimized configuration with formatOnSave and ESLint integration in `settings.json`
+The monorepo includes pre-configured VS Code settings that enhance development, which you can see in the example project "app":
 
-When you create a new project using `create-new.cmd`, corresponding VS Code tasks and debug configurations are automatically added to these files. This ensures a consistent development experience and allows you to run, debug, and maintain all projects directly from VS Code's interface.
+- **Tasks** - All standard package scripts are available as VS Code tasks in `tasks.json`:
+  `Clean`, `Lint`, `Test`, `Build`, `Start`
+- **Debugging** - Each project has its own `Debug` configuration in `launch.json`
+- **Editor Settings** - The `settings.json` file contains settings that improve development experience, such as formatOnSave and ESLint integration
+
+All these standard configurations are automatically added for a newly created project when you execute the `create-new.cmd` script. In Windows, you can run the script directly through the GUI or from the command line, but administrator privileges will be required. For Linux and macOS, you need to execute it through the terminal using, for example, `sh ./create-new.cmd`.
 
 ## Shared Modules and Atomic Build Architecture
 
-There are multiple ways to organize access to a `shared` directory in a monorepo. We suggest you consider creating a symbolic link called `src/@shared` pointing to this directory. This approach differs from the traditional method of importing shared code as a package, offering advantages like flexible module hierarchy, tree-shaking optimizations, and direct source access for easier debugging. In the App application example, the `add()` function is imported from `@shared` symlink. This approach allows importing directly from a specific directory or module for better optimization and readability, which is practically impossible when importing from a packaged dependency:
+There are multiple ways to organize access to a `shared` directory in a monorepo. We suggest you consider creating a symbolic link called `src/@shared` pointing to this directory. This approach differs from the traditional method of importing shared code as a package, offering advantages like flexible module hierarchy, tree-shaking optimizations, and direct source access for easier debugging. In the "app" application example, the `add()` function is imported from `@shared` symlink. This approach allows importing directly from a specific directory or module for better optimization and readability, which is practically impossible when importing from a packaged dependency:
 ```typescript
 import { add } from './@shared' /* or './@shared/utils' or './@shared/utils/math' */;
 
 console.log('Hello from the App!');
 console.log(`2 + 3 = ${add(2, 3)}`);
 ```
-Our template doesn't restrict you in any way. You're free to create symlinks manually or not use them at all, use any package manager of your choice, delete the _node_modules_ folder and reinitialize it. The goal is to make your life easier when solving common tasks.
-
-For dependency initialization, both locally or on a build server, instead of the usual `npm/yarn/pnpm install`, we recommend using the universal `setup.cmd` script (Windows: run it directly, Linux/macOS: run with `sh ./setup.cmd`). This script initializes symlinks, downloads development dependencies to the _node_modules_ in the root directory, and places compact **production** dependencies in the project directory's _node_modules_. This approach isolates projects from each other, making builds faster and consuming less disk space.
-
-For most cases, running the `setup.cmd` script without any parameters will be sufficient as it will initialize the entire monorepo. The complete script syntax is: `setup.cmd [project] [--npm|--yarn|--pnpm|--remove]`. If you specify a project name, the script will initialize only that specific project instead of the entire monorepo. You can also specify which package manager to use: `npm` (default), `yarn`, or `pnpm`. Using the `--remove` option will delete the project files along with related scripts and VSCode configurations. Additionally, if the project is under Git version control, it will also be removed from the repository. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
+We've developed a universal `./setup.cmd` script that downloads dependencies and creates symlinks. In Windows, run it directly (requires administrator privileges for symlinks). For Linux and macOS, execute it via terminal: `sh ./setup.cmd`. You can use any package manager instead (npm, yarn, pnpm) and manage symlinks yourself. We prefer npm for its stability and speed. All monorepo dependencies are stored in the root node_modules, saving disk space but including all projects' dependencies. For smaller deployments, use bundlers or run `npm ci --omit=dev` in the project directory.
 
 ## Multi-Framework Support
 
@@ -140,9 +131,7 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 
 ![Project Creation Menu](./packages/shared/cli/create-new-menu.png)
 
-Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. The script `create-new.cmd`, as well as `setup.cmd`, allows you to explicitly specify which package manager to use: `--npm` (default), `--yarn`, or `--pnpm`. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
-
-
+Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
 
 ## Contributing
 

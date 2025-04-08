@@ -4,13 +4,13 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug App",
+      "name": "Debug",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
         "dev"
       ],
-      "cwd": "${workspaceFolder}/packages/app",
+      "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
     }

@@ -1,18 +1,20 @@
-@echo off
-setlocal enabledelayedexpansion
+: '
 :: This is a universal setup script that works on both Windows and Unix systems
 :: Check for Windows platform and run appropriate setup
-goto :windows 2>nul || :
+@goto :windows 2>nul || :
+'
 
-#!/bin/bash
 # If we get here, we're on a Unix-like system
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 node "$SCRIPT_DIR/packages/shared/cli/setup.js" "$@"
 exit $?
 
+: '
 :windows
 :: Windows-specific setup
 :: Get the directory where this script resides
+@echo off
+setlocal enabledelayedexpansion
 set "SCRIPT_DIR=%~dp0"
 
 :: Check for admin rights
@@ -27,3 +29,4 @@ if %errorLevel% == 0 (
 )
 
 exit /b %errorLevel%
+'

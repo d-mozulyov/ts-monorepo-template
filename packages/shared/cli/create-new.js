@@ -29,20 +29,6 @@ function isAdminWindows() {
 }
 
 /**
- * Checks if a package manager is installed globally
- * @param {string} manager - Package manager to check ('npm', 'yarn', or 'pnpm')
- * @returns {boolean} True if the package manager is installed
- */
-function isPackageManagerInstalled(manager) {
-  try {
-    execSync(`${manager} --version`, { stdio: 'ignore' });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
  * Determines the root directory of the monorepo
  * @returns {string} The absolute path to the root directory
  */
@@ -356,76 +342,6 @@ export const ${moduleCodeName}_example = () => {
 }
 
 /**
- * Parse command line arguments and determine optimal package manager
- * @returns {Object} Parsed arguments with selected package manager
- */
-function parseArguments() {
-  const args = process.argv.slice(2);
-  let explicitPackageManager = null;
-  
-  // Check if package manager is explicitly specified in args
-  for (const arg of args) {
-    if (arg === '--npm' || arg === '--yarn' || arg === '--pnpm') {
-      explicitPackageManager = arg.substring(2); // Remove the '--' prefix
-    } else {
-      console.error(chalk.red(`Error: Unknown argument: ${arg}`));
-      
-      // Display usage message based on OS
-      if (os.platform() === 'win32') {
-        console.error('Usage: create-new.cmd [--npm|--yarn|--pnpm]');
-      } else {
-        console.error('Usage: sh ./create-new.cmd [--npm|--yarn|--pnpm]');
-      }
-      
-      exit(1);
-    }
-  }
-  
-  // If package manager is explicitly specified, verify it's installed
-  if (explicitPackageManager) {
-    if (!isPackageManagerInstalled(explicitPackageManager)) {
-      console.error(chalk.red(`Error: ${explicitPackageManager} is not installed or not available in the system path`));
-      exit(1);
-    }
-    console.log(chalk.blue(`Using explicitly specified package manager: ${explicitPackageManager}`));
-    return { packageManager: explicitPackageManager };
-  }
-   
-  // Find root directory to check for lock files
-  const rootDir = findRootDir();
-  
-  // Check for pnpm-lock.yaml
-  if (fs.existsSync(path.join(rootDir, 'pnpm-lock.yaml'))) {
-    if (isPackageManagerInstalled('pnpm')) {
-      console.log(chalk.gray(`Found pnpm-lock.yaml in project root, using ${chalk.underline('pnpm')} as package manager`));
-      return { packageManager: 'pnpm' };
-    } else {
-      console.log(chalk.yellow('Found pnpm-lock.yaml in project root, but pnpm is not installed'));
-    }
-  }
-  
-  // Check for yarn.lock
-  if (fs.existsSync(path.join(rootDir, 'yarn.lock'))) {
-    if (isPackageManagerInstalled('yarn')) {
-      console.log(chalk.gray(`Found yarn.lock in project root, using ${chalk.underline('yarn')} as package manager`));
-      return { packageManager: 'yarn' };
-    } else {
-      console.log(chalk.yellow('Found yarn.lock in project root, but yarn is not installed'));
-    }
-  }
-  
-  // Default to npm
-  if (isPackageManagerInstalled('npm')) {
-    console.log(chalk.gray(`Using ${chalk.underline('npm')} as default package manager`));
-    return { packageManager: 'npm' };
-  }
-  
-  // If we get here, no package manager is installed
-  console.error(chalk.red('Error: No package manager (npm, yarn, or pnpm) is installed or available in the system path'));
-  exit(1);
-}
-
-/**
  * Main function that orchestrates the project creation workflow
  */
 async function main() {
@@ -441,11 +357,6 @@ async function main() {
 
   // Find the root directory
   const rootDir = findRootDir();
-  console.log(chalk.gray(`Root directory: ${rootDir}`));
-  
-  // Parse command line arguments
-  const { packageManager } = parseArguments();
-  console.log('');
   
   // Calculate shared directory path
   const sharedDir = path.join(rootDir, 'packages', 'shared');
@@ -522,16 +433,31 @@ async function main() {
   console.log('');
   console.log(chalk.green('✅ Selected project type:'), chalk.bold(`${selectedProject}`));
 
-  // Create the new project, passing rootDir, selectedProject and packageManager
-  const projectDir = await createNewProject(rootDir, selectedProject, packageManager);
+  // Create the new project, passing rootDir and selectedProject
+  const projectDir = await createNewProject(rootDir, selectedProject);
   
-  // Check if createNewProject returned a project directory and if it's under Git control
-  if (projectDir && isGitRepository(rootDir)) {
+  // Run npm install in the project directory
+  if (projectDir) {
     console.log('');
-    const shouldAddToGit = await askYesNo(`Would you like to add the directory "${projectDir}" to Git?`);
-    
-    if (shouldAddToGit) {
-      addFilesToGit(rootDir, [projectDir]);
+    console.log(chalk.blue(`Installing dependencies with npm...`));
+    try {
+      execSync('npm install', { 
+        cwd: projectDir,
+        stdio: 'inherit' // Show output in the console
+      });
+      console.log(chalk.green('✅ Dependencies installed successfully'));
+    } catch (error) {
+      console.error(chalk.red(`Error installing dependencies: ${error.message}`));
+    }
+  
+    // Check if the project directory is under Git control
+    if (isGitRepository(rootDir)) {
+      console.log('');
+      const shouldAddToGit = await askYesNo(`Would you like to add the directory "${projectDir}" to Git?`);
+      
+      if (shouldAddToGit) {
+        addFilesToGit(rootDir, [projectDir]);
+      }
     }
   }
 }
