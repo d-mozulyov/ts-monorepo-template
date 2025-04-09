@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "projects/*"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces",
@@ -17,9 +17,7 @@
     "build:app": "npm run build --workspace=@monorepo/app",
     "start:app": "npm run start --workspace=@monorepo/app"
   },
-  "dependencies": {
-    "monorepo": "file:"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.13",

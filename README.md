@@ -4,11 +4,11 @@ A comprehensive template for managing multiple TypeScript projects within a sing
 
 ## What is a Monorepo?
 
-A monorepo (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository, enabling easy code sharing, simplified dependency management, atomic changes across packages, coordinated versioning, unified CI/CD pipelines, and improved developer experience with better visibility into the entire ecosystem — all while maintaining centralized configuration, shared tooling, and consistent standards.
+A monorepo (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository, enabling easy code sharing, simplified dependency management, atomic changes across projects, coordinated versioning, unified CI/CD pipelines, and improved developer experience with better visibility into the entire ecosystem — all while maintaining centralized configuration, shared tooling, and consistent standards.
 
 ## Common Challenges with TypeScript Monorepos
 
-TypeScript monorepos face significant setup challenges: cross-package type sharing, project references configuration, efficient incremental builds, consistent path aliases, proper build order orchestration, and maintaining IDE intellisense across workspace boundaries while keeping build performance acceptable as the codebase grows.
+TypeScript monorepos face significant setup challenges: cross-project type sharing, project references configuration, efficient incremental builds, consistent path aliases, proper build order orchestration, and maintaining IDE intellisense across workspace boundaries while keeping build performance acceptable as the codebase grows.
 
 ## Why This Monorepo Template?
 
@@ -19,7 +19,7 @@ This TypeScript monorepo template provides an opinionated yet flexible foundatio
 - **Multi-Framework Support** - Ready-to-use templates for popular frameworks (React, Vue, Angular, Express, NestJS, React Native, Electron, etc.)
 - **Shared Module System** - Automatic symlink creation to shared modules with proper TypeScript path resolution
 - **VS Code Integration** - Pre-configured debugging, tasks, and settings optimized for monorepo development
-- **Atomicity** - Each workspace project builds independently, allowing for isolated debugging, testing, and deployment while still enabling cross-package imports when needed - perfect balance of independence and integration
+- **Atomicity** - Each workspace project builds independently, allowing for isolated debugging, testing, and deployment while still enabling cross-project imports when needed - perfect balance of independence and integration
 
 ## Getting Started
 
@@ -46,19 +46,19 @@ To create your own monorepo based on this template, follow these steps:
    sh ./setup.cmd    # Linux/macOS/Bash
    ```
    For more details on how this works and why it's important, see the _"Shared Modules and Atomic Build Architecture"_ section below.
-   
-4. **Build the app example project**. This monorepo features a comprehensive set of standard scripts (detailed in the _"Standard Package Scripts_" section below). You can build only the App application or all monorepo applications with a single command:
+
+4. **Build the app example project**. This monorepo features a comprehensive set of standard scripts (detailed in the _"Standard Package Scripts_" section below). You can build only the "app" application or all monorepo applications with a single command:
    ```bash
    npm run build       # Build all applications
-   npm run build:app   # Build App application
+   npm run build:app   # Build "app" application
    ```
 5. **Run the app example project**.
    ```bash
    # Start the app project
    npm run start:app
-   
+
    # You should see the following output in the console:
-   Hello from the App!
+   Hello from the app!
    2 + 3 = 5
    ```
 
@@ -70,7 +70,7 @@ npm run build | yarn build | pnpm build
 ```
 The monorepo template does not impose any restrictions on this section beyond the existing syntax rules. However, when generating a new project within this monorepo, for your convenience, we pre-populate a set of typical scripts that you can run right away: some are described in the root directory, some in the project directory.
 
-For example, if you are in the project directory `packages/app`, you can run the following:
+For example, if you are in the project directory `projects/app`, you can run the following:
 ```
 npm run clean  - Removes build artifacts
 npm run lint   - Runs ESLint
@@ -129,7 +129,7 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 - Mobile: React Native, Expo, NativeScript, Ionic, Capacitor.js
 - Desktop: Electron, Tauri, Neutralino.js, Proton Native, Sciter
 
-![Project Creation Menu](./packages/shared/cli/create-new-menu.png)
+![Project Creation Menu](./cli/create-new-menu.png)
 
 Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
 

@@ -17,8 +17,8 @@ bower_components/
 .yarn/install-state.gz
 .npm/
 
-# Ignore all @shared symlinks in any subdirectory of packages
-packages/**/src/@shared
+# Ignore all @shared symlinks in any subdirectory of projects
+projects/**/src/@shared
 
 # Build outputs and distribution folders
 dist/

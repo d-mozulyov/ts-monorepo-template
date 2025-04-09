@@ -5,14 +5,15 @@
  * It provides an interactive CLI for selecting project types and templates.
  */
 
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-const chalk = require('chalk');
-const { execSync } = require('child_process');
-const { exit } = require('process');
-const { createNewProject } = require('./create-new-project');
+import os from 'os';
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import chalk from 'chalk';
+import { execSync } from 'child_process';
+import { exit } from 'process';
+import { fileURLToPath } from 'url';
+import { createNewProject } from './create-new-project.js';
 
 /**
  * Checks if script is running with administrator privileges on Windows
@@ -33,18 +34,19 @@ function isAdminWindows() {
  * @returns {string} The absolute path to the root directory
  */
 function findRootDir() {
-  // Expected path of the current script
-  const expectedScriptPath = path.join('packages', 'shared', 'cli');
-  
   // Get the current script's directory
-  const currentDir = __dirname;
+  const __filename = fileURLToPath(import.meta.url);
+  const currentDir = path.dirname(__filename);
   
+  // Expected path of the current script
+  const expectedScriptPath = path.join('cli');
+
   // Check if the current script is in the expected location
   if (!currentDir.endsWith(expectedScriptPath)) {
-    console.error(chalk.red('Error: This script must be located in <rootDir>/packages/shared/cli'));
+    console.error(chalk.red('Error: This script must be located in <rootDir>/cli'));
     exit(1);
   }
-  
+
   // Calculate the root directory by removing the expected path from the current directory
   return currentDir.slice(0, currentDir.length - expectedScriptPath.length);
 }
@@ -56,9 +58,9 @@ function findRootDir() {
  */
 function isGitRepository(dir) {
   try {
-    execSync('git rev-parse --is-inside-work-tree', { 
+    execSync('git rev-parse --is-inside-work-tree', {
       cwd: dir,
-      stdio: 'ignore' 
+      stdio: 'ignore'
     });
     return true;
   } catch (error) {
@@ -74,9 +76,9 @@ function isGitRepository(dir) {
 function addFilesToGit(rootDir, files) {
   try {
     for (const file of files) {
-      execSync(`git add "${file}"`, { 
+      execSync(`git add "${file}"`, {
         cwd: rootDir,
-        stdio: 'ignore' 
+        stdio: 'ignore'
       });
     }
     console.log(chalk.green('✅ Files successfully added to Git'));
@@ -172,14 +174,14 @@ function createPrompt() {
  */
 async function askYesNo(question) {
   const prompt = createPrompt();
-  
+
   const answer = await new Promise((resolve) => {
     prompt.question(
       chalk.yellow(`${question} (y/n): `),
       (answer) => resolve(answer.trim().toLowerCase())
     );
   });
-  
+
   prompt.close();
   return answer === 'y' || answer === 'yes';
 }
@@ -192,16 +194,16 @@ async function askYesNo(question) {
 async function createNewSharedModule(rootDir) {
   console.log(chalk.bold.blue('📦 Creating a new shared module'));
   console.log('');
-  
+
   // Calculate shared directory path
-  const sharedDir = path.join(rootDir, 'packages', 'shared');
-  
+  const sharedDir = path.join(rootDir, 'shared');
+
   const prompt = createPrompt();
   const createdFiles = [];
-  
+
   let moduleName = '';
   let isValidModule = false;
-  
+
   while (!isValidModule) {
     // Ask for module name
     moduleName = await new Promise((resolve) => {
@@ -210,32 +212,32 @@ async function createNewSharedModule(rootDir) {
         (answer) => resolve(answer.trim())
       );
     });
-    
+
     // Validate module name
     if (!moduleName) {
       console.error(chalk.red('Error: Module name cannot be empty'));
       continue;
     }
-    
+
     if (moduleName.startsWith('/')) {
       console.error(chalk.red('Error: Module name cannot start with "/"'));
       continue;
     }
-    
+
     if (moduleName.includes('\\')) {
       console.error(chalk.red('Error: Use "/" instead of "\\" for directory separators'));
       continue;
     }
-    
+
     if (!moduleName.endsWith('.ts')) {
       console.error(chalk.red('Error: Module file must end with ".ts" extension'));
       continue;
     }
-    
+
     // Check intermediate directories
     const parts = moduleName.split('/');
     let invalidPart = false;
-    
+
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       if (part.startsWith('.') || part.endsWith('.ts')) {
@@ -244,30 +246,30 @@ async function createNewSharedModule(rootDir) {
         break;
       }
     }
-    
+
     if (invalidPart) continue;
-    
+
     // Check if module already exists
     const modulePath = path.join(sharedDir, moduleName);
     if (fs.existsSync(modulePath)) {
       console.error(chalk.red(`Error: Module "${moduleName}" already exists at "${modulePath}"`));
       continue;
     }
-    
+
     isValidModule = true;
   }
-  
+
   prompt.close();
-  
+
   // Create module file and directories
   const modulePath = path.join(sharedDir, moduleName);
   const moduleDir = path.dirname(modulePath);
-  
+
   // Create directories if they don't exist
   fs.mkdirSync(moduleDir, { recursive: true });
-  
+
   // Create the module file with a basic template
-  moduleCodeName = moduleName.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_');
+  const moduleCodeName = moduleName.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_');
   fs.writeFileSync(modulePath, `/**
  * ${path.basename(moduleName)}
  */
@@ -280,16 +282,16 @@ export const ${moduleCodeName}_example = () => {
   // Add to created files (relative path from rootDir)
   const relModulePath = path.relative(rootDir, modulePath);
   createdFiles.push(relModulePath);
-  
+
   console.log(chalk.green(`✅ Created module: ${modulePath}`));
 
   // Update or create index.ts files in each parent directory
   let childPath = modulePath;
-  
+
   while (true) {
     const baseDir = path.dirname(childPath);
     const indexPath = path.join(baseDir, 'index.ts');
-       
+
     // Don't add self-reference
     if (indexPath !== childPath) {
       // Create index file if it doesn't exist
@@ -299,36 +301,36 @@ export const ${moduleCodeName}_example = () => {
         fileCreated = true;
         console.log(chalk.blue(`Created index: ${indexPath}`));
       }
-      
+
       // Calculate the relative path for the import
       let importPath = './' + path.relative(baseDir, childPath).replace(/\\/g, '/');
       // Remove .ts extension for the import
       importPath = importPath.replace(/\.ts$/, '');
-      
+
       // Read existing content
       const indexContent = fs.readFileSync(indexPath, 'utf8');
-      
+
       // Prepare the export statement
       const exportStatement = `export * from '${importPath}';`;
-      
+
       // Add the export if it doesn't already exist
       if (!indexContent.includes(exportStatement)) {
-        const newContent = indexContent 
+        const newContent = indexContent
           ? indexContent.trim() + '\n' + exportStatement + '\n'
           : exportStatement + '\n';
-        
+
         fs.writeFileSync(indexPath, newContent);
-        
+
         // Add to created files only if we created a new file
         if (fileCreated) {
           const relIndexPath = path.relative(rootDir, indexPath);
           createdFiles.push(relIndexPath);
         }
-        
+
         console.log(chalk.blue(`Updated index: ${indexPath} with export for ${importPath}`));
       }
     }
-    
+
     // Stop if we've reached the shared directory
     if (path.relative(sharedDir, baseDir) === '') {
       break;
@@ -337,7 +339,7 @@ export const ${moduleCodeName}_example = () => {
     // Next iteration
     childPath = baseDir;
   }
- 
+
   return createdFiles;
 }
 
@@ -347,7 +349,7 @@ export const ${moduleCodeName}_example = () => {
 async function main() {
   console.log(chalk.bold.green('🚀 Create New Project in Monorepo'));
   console.log('');
-  
+
   // Check admin rights for Windows
   if (os.platform() === 'win32' && !isAdminWindows()) {
     console.error(chalk.red('Error: This script requires administrator privileges on Windows.'));
@@ -357,9 +359,9 @@ async function main() {
 
   // Find the root directory
   const rootDir = findRootDir();
-  
+
   // Calculate shared directory path
-  const sharedDir = path.join(rootDir, 'packages', 'shared');
+  const sharedDir = path.join(rootDir, 'shared');
 
   // Primary project category menu
   const projectCategories = [
@@ -378,25 +380,25 @@ async function main() {
   if (categoryIndex === 0) {
     console.log('');
     const createdFiles = await createNewSharedModule(rootDir);
-    
+
     // Check if we need to add files to Git
     if (createdFiles.length > 0 && isGitRepository(rootDir)) {
       console.log('');
-      
+
       let promptMessage = '';
       if (createdFiles.length === 1) {
         promptMessage = `Would you like to add the file \"${createdFiles[0]}\" to Git?`;
       } else {
         promptMessage = `Would you like to add ${createdFiles.length} files to Git?`;
       }
-      
+
       const shouldAddToGit = await askYesNo(promptMessage);
-      
+
       if (shouldAddToGit) {
         addFilesToGit(rootDir, createdFiles);
       }
     }
-    
+
     return;
   }
 
@@ -435,13 +437,13 @@ async function main() {
 
   // Create the new project, passing rootDir and selectedProject
   const projectDir = await createNewProject(rootDir, selectedProject);
-  
+
   // Run npm install in the project directory
   if (projectDir) {
     console.log('');
     console.log(chalk.blue(`Installing dependencies with npm...`));
     try {
-      execSync('npm install', { 
+      execSync('npm install', {
         cwd: projectDir,
         stdio: 'inherit' // Show output in the console
       });
@@ -449,12 +451,12 @@ async function main() {
     } catch (error) {
       console.error(chalk.red(`Error installing dependencies: ${error.message}`));
     }
-  
+
     // Check if the project directory is under Git control
     if (isGitRepository(rootDir)) {
       console.log('');
       const shouldAddToGit = await askYesNo(`Would you like to add the directory "${projectDir}" to Git?`);
-      
+
       if (shouldAddToGit) {
         addFilesToGit(rootDir, [projectDir]);
       }

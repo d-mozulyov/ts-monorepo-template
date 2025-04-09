@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-const readline = require('readline');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import readline from 'readline';
 
 /**
  * Default dependency versions used for project initialization
@@ -19,7 +19,7 @@ const defaultDependencies = {
   '@types/node': '^22.13.13',
   '@typescript-eslint/eslint-plugin': '^8.28.0',
   '@typescript-eslint/parser': '^8.28.0',
-  
+
   // React/Vue/Svelte
   'react': '^18.2.0',
   'react-dom': '^18.2.0',
@@ -31,7 +31,7 @@ const defaultDependencies = {
   '@testing-library/jest-dom': '^5.16.0',
   '@testing-library/svelte': '^3.0.0',
   '@testing-library/vue': '^2.0.0',
-  
+
   // Express/Fastify/NestJS
   'express': '^4.18.0',
   '@types/express': '^4.17.0',
@@ -39,14 +39,14 @@ const defaultDependencies = {
   '@nestjs/cli': '^9.0.0',
   'supertest': '^6.0.0',
   '@types/supertest': '^2.0.0',
-  
+
   // Mobile
   'react-native': '^0.72.0',
   'expo': '^49.0.0',
   '@nativescript/cli': '^8.0.0',
   '@ionic/cli': '^6.0.0',
   '@capacitor/core': '^5.0.0',
-  
+
   // Desktop
   'electron': '^24.0.0',
   'electron-builder': '^23.0.0',
@@ -67,9 +67,9 @@ const defaultDependencies = {
 async function createNewProject(rootDir, projectType) {
   // Validate project type
   const validProjectTypes = [
-    'Empty Node.js', 'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte', 
-    'Express.js', 'NestJS', 'Fastify', 'AdonisJS', 'FeathersJS', 
-    'React Native', 'Expo', 'NativeScript', 'Ionic', 'Capacitor.js', 
+    'Empty Node.js', 'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte',
+    'Express.js', 'NestJS', 'Fastify', 'AdonisJS', 'FeathersJS',
+    'React Native', 'Expo', 'NativeScript', 'Ionic', 'Capacitor.js',
     'Electron', 'Tauri', 'Neutralino.js', 'Proton Native', 'Sciter'
   ];
 
@@ -102,14 +102,14 @@ async function createNewProject(rootDir, projectType) {
         continue;
       }
 
-      // Regexp check  
+      // Regexp check
       if (!/^[a-z0-9-_]+$/i.test(projectName)) {
         console.error('Project name can only contain letters, numbers, hyphens, and underscores');
         continue;
       }
 
       // Paths
-      projectLocalDir = path.join('packages', projectName);
+      projectLocalDir = path.join('projects', projectName);
       projectDir = path.join(rootDir, projectLocalDir);
 
       // Check if directory already exists
@@ -121,7 +121,7 @@ async function createNewProject(rootDir, projectType) {
       // Done
       break;
     }
-   
+
     // Create project directory
     fs.mkdirSync(projectDir, { recursive: true });
 
@@ -130,7 +130,7 @@ async function createNewProject(rootDir, projectType) {
 
     // Done
     console.log(`Project "${projectName}" successfully created!`);
-    
+
     // Return the project local directory path on success
     return projectLocalDir;
   } catch (error) {
@@ -220,7 +220,7 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
   }
 
   // Create symlink to shared directory
-  const sharedDir = path.join(rootDir, 'packages', 'shared');
+  const sharedDir = path.join(rootDir, 'shared');
   const sharedSymlink = path.join(projectDir, 'src', '@shared');
   const srcDir = path.join(projectDir, 'src');
   if (!fs.existsSync(srcDir)) {
@@ -230,7 +230,7 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
 
   // Verify package.json exists and contains required scripts
   updateProjectPackage(projectDir);
-    
+
   // Update tsconfig.json for proper monorepo integration
   updateProjectTSConfig(projectDir);
 
@@ -255,9 +255,6 @@ async function createEmptyNodeProject(projectDir, packageName) {
     "scripts": {},
     "dependencies": {}
   };
-  
-  // Add package dependency to itself for proper monorepo setup
-  packageJson.dependencies[packageName] = "file:";
 
   fs.writeFileSync(
     path.join(projectDir, 'package.json'),
@@ -267,7 +264,7 @@ async function createEmptyNodeProject(projectDir, packageName) {
   // Create basic structure
   fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
   fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
-  
+
   // Create sample index.ts
   fs.writeFileSync(
     path.join(projectDir, 'src', 'index.ts'),
@@ -294,14 +291,14 @@ async function createReactProject(projectDir, packageName) {
   try {
     // Use Vite to create React project
     execSync(`npx create-vite ${projectDir} --template react-ts`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
@@ -315,7 +312,7 @@ async function createReactProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@testing-library/react'] = defaultDependencies['@testing-library/react'];
     }
-       
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating React project:', error);
@@ -332,14 +329,14 @@ async function createNextJsProject(projectDir, packageName) {
   try {
     // Use create-next-app to create Next.js project
     execSync(`npx create-next-app ${projectDir} --typescript`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf .next';
@@ -353,7 +350,7 @@ async function createNextJsProject(projectDir, packageName) {
       packageJson.devDependencies['@testing-library/react'] = defaultDependencies['@testing-library/react'];
       packageJson.devDependencies['@testing-library/jest-dom'] = defaultDependencies['@testing-library/jest-dom'];
     }
-     
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Next.js project:', error);
@@ -370,19 +367,19 @@ async function createAngularProject(projectDir, packageName) {
   try {
     // Use Angular CLI to create Angular project
     execSync(`npx @angular/cli new ${path.basename(projectDir)} --directory ${projectDir} --skip-git --skip-install`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Ensure all required scripts are present
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
     }
-      
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Angular project:', error);
@@ -399,14 +396,14 @@ async function createVueProject(projectDir, packageName) {
   try {
     // Use Vite to create Vue project
     execSync(`npx create-vite ${projectDir} --template vue-ts`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
@@ -420,7 +417,7 @@ async function createVueProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@vue/test-utils'] = defaultDependencies['@vue/test-utils'];
     }
-       
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Vue.js project:', error);
@@ -437,14 +434,14 @@ async function createSvelteProject(projectDir, packageName) {
   try {
     // Use Vite to create Svelte project
     execSync(`npx create-vite ${projectDir} --template svelte-ts`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
@@ -458,7 +455,7 @@ async function createSvelteProject(projectDir, packageName) {
       packageJson.devDependencies['vitest'] = defaultDependencies['vitest'];
       packageJson.devDependencies['@testing-library/svelte'] = defaultDependencies['@testing-library/svelte'];
     }
-   
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Svelte project:', error);
@@ -475,7 +472,7 @@ async function createExpressProject(projectDir, packageName) {
   // Create project structure
   fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
   fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
-  
+
   // Create package.json
   const packageJson = {
     name: packageName,
@@ -512,7 +509,7 @@ async function createExpressProject(projectDir, packageName) {
     path.join(projectDir, 'package.json'),
     JSON.stringify(packageJson, null, 2)
   );
-  
+
   // Create sample index.ts
   fs.writeFileSync(
     path.join(projectDir, 'src', 'index.ts'),
@@ -557,19 +554,19 @@ async function createNestJsProject(projectDir, packageName) {
   try {
     // Use Nest CLI to create NestJS project
     execSync(`npx @nestjs/cli new ${projectDir} --skip-git --package-manager npm`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Ensure all required scripts are present
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf ./dist';
     }
-    
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating NestJS project:', error);
@@ -586,7 +583,7 @@ async function createFastifyProject(projectDir, packageName) {
   // Create project structure
   fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
   fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
-  
+
   // Create package.json
   const packageJson = {
     name: packageName,
@@ -620,7 +617,7 @@ async function createFastifyProject(projectDir, packageName) {
     path.join(projectDir, 'package.json'),
     JSON.stringify(packageJson, null, 2)
   );
-  
+
   // Create sample index.ts
   fs.writeFileSync(
     path.join(projectDir, 'src', 'index.ts'),
@@ -663,7 +660,7 @@ describe('Fastify App', () => {
       method: 'GET',
       url: '/'
     });
-    
+
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload).message).toBe('Hello from ${packageName}!');
   });
@@ -680,19 +677,19 @@ async function createAdonisJsProject(projectDir, packageName) {
   try {
     // Use AdonisJS CLI to create AdonisJS project
     execSync(`npx create-adonis-ts-app ${projectDir} --api-only`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf build';
     }
-   
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating AdonisJS project:', error);
@@ -713,7 +710,7 @@ async function createFeathersJsProject(projectDir, packageName) {
     // Create project structure
     fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
     fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
-    
+
     // Create package.json
     const packageJson = {
       name: packageName,
@@ -744,12 +741,12 @@ async function createFeathersJsProject(projectDir, packageName) {
         'ts-jest': defaultDependencies['ts-jest']
       }*/
     };
-  
+
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify(packageJson, null, 2)
     );
-    
+
     // Create sample index.ts
     fs.writeFileSync(
       path.join(projectDir, 'src', 'index.ts'),
@@ -784,7 +781,7 @@ app.listen(port, () => {
 
 export default app;`
     );
-  
+
     // Create sample test
     fs.writeFileSync(
       path.join(projectDir, 'tests', 'index.test.ts'),
@@ -794,7 +791,7 @@ describe('Feathers App', () => {
   it('should return hello message', async () => {
     const service = app.service('messages');
     const messages = await service.find();
-    
+
     expect(messages).toHaveLength(1);
     expect(messages[0].message).toBe('Hello from ${packageName}!');
   });
@@ -815,14 +812,14 @@ async function createReactNativeProject(projectDir, packageName) {
   try {
     // Use React Native CLI to create React Native project
     execSync(`npx react-native init ${path.basename(projectDir)} --directory ${projectDir} --template react-native-template-typescript`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf android/app/build ios/build';
@@ -833,7 +830,7 @@ async function createReactNativeProject(projectDir, packageName) {
     if (!packageJson.scripts.build) {
       packageJson.scripts.build = 'tsc';
     }
-       
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating React Native project:', error);
@@ -850,14 +847,14 @@ async function createExpoProject(projectDir, packageName) {
   try {
     // Use Expo CLI to create Expo project
     execSync(`npx create-expo-app ${projectDir} -t expo-template-blank-typescript`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf .expo .expo-shared dist';
@@ -873,7 +870,7 @@ async function createExpoProject(projectDir, packageName) {
     if (!packageJson.scripts.build) {
       packageJson.scripts.build = 'expo export:web';
     }
-       
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Expo project:', error);
@@ -890,14 +887,14 @@ async function createNativeScriptProject(projectDir, packageName) {
   try {
     // Use NativeScript CLI to create NativeScript project
     execSync(`npx @nativescript/cli create ${projectDir} --ts`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf hooks node_modules platforms';
@@ -908,7 +905,7 @@ async function createNativeScriptProject(projectDir, packageName) {
     if (!packageJson.scripts.test) {
       packageJson.scripts.test = 'jest';
     }
-   
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating NativeScript project:', error);
@@ -925,19 +922,19 @@ async function createIonicProject(projectDir, packageName) {
   try {
     // Use Ionic CLI to create Ionic project
     execSync(`npx @ionic/cli start ${projectDir} blank --type=react --capacitor`, { stdio: 'inherit' });
-    
+
     // Modify package.json to comply with monorepo structure
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     packageJson.name = packageName;
     packageJson.private = true;
-    
+
     // Add missing scripts
     if (!packageJson.scripts.clean) {
       packageJson.scripts.clean = 'rimraf build';
     }
-   
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Ionic project:', error);
@@ -954,22 +951,22 @@ async function createCapacitorProject(projectDir, packageName) {
   try {
     // First create a React project with Vite (web app)
     await createReactProject(projectDir, packageName);
-    
+
     // Add Capacitor
     execSync(`cd ${projectDir} && npm install @capacitor/core @capacitor/cli`, { stdio: 'inherit' });
     execSync(`cd ${projectDir} && npx cap init ${packageName} ${packageName} --web-dir=dist`, { stdio: 'inherit' });
     execSync(`cd ${projectDir} && npm install @capacitor/ios @capacitor/android`, { stdio: 'inherit' });
-    
+
     // Modify package.json to add Capacitor scripts
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     // Add Capacitor scripts
     packageJson.scripts['cap:add'] = 'cap add';
     packageJson.scripts['cap:copy'] = 'cap copy';
     packageJson.scripts['cap:open'] = 'cap open';
     packageJson.scripts['cap:build'] = 'npm run build && npm run cap:copy';
-    
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Capacitor project:', error);
@@ -986,7 +983,7 @@ async function createElectronProject(projectDir, packageName) {
   try {
     // Create project structure
     fs.mkdirSync(projectDir, { recursive: true });
-    
+
     // Create package.json
     const packageJson = {
       name: packageName,
@@ -1014,16 +1011,16 @@ async function createElectronProject(projectDir, packageName) {
         'electron-builder': defaultDependencies['electron-builder']
       }
     };
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify(packageJson, null, 2)
     );
-    
+
     // Create directories
     fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
     fs.mkdirSync(path.join(projectDir, 'electron'), { recursive: true });
-    
+
     // Create Vite config
     fs.writeFileSync(
       path.join(projectDir, 'vite.config.ts'),
@@ -1037,7 +1034,7 @@ export default defineConfig({
   }
 });`
     );
-    
+
     // Create main.js for Electron
     fs.writeFileSync(
       path.join(projectDir, 'electron', 'main.js'),
@@ -1086,7 +1083,7 @@ app.on('activate', function() {
   }
 });`
     );
-    
+
     // Create React app files
     fs.writeFileSync(
       path.join(projectDir, 'src', 'index.html'),
@@ -1103,7 +1100,7 @@ app.on('activate', function() {
   </body>
 </html>`
     );
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'src', 'main.tsx'),
       `import React from 'react';
@@ -1116,7 +1113,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );`
     );
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'src', 'App.tsx'),
       `import React from 'react';
@@ -1149,18 +1146,18 @@ async function createTauriProject(projectDir, packageName) {
   try {
     // Create a React project with Vite first
     await createReactProject(projectDir, packageName);
-    
+
     // Add Tauri
     execSync(`cd ${projectDir} && npm install @tauri-apps/cli @tauri-apps/api`, { stdio: 'inherit' });
     execSync(`cd ${projectDir} && npx @tauri-apps/cli init`, { stdio: 'inherit' });
-    
+
     // Update package.json with Tauri scripts
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
+
     // Add Tauri scripts
     packageJson.scripts['tauri'] = 'tauri';
-    
+
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
   } catch (error) {
     console.error('Error creating Tauri project:', error);
@@ -1177,7 +1174,7 @@ async function createNeutralinoProject(projectDir, packageName) {
   try {
     // Create project using Neutralino CLI
     execSync(`npx @neutralinojs/neu create ${projectDir}`, { stdio: 'inherit' });
-    
+
     // Add package.json for monorepo integration
     const packageJson = {
       name: packageName,
@@ -1200,7 +1197,7 @@ async function createNeutralinoProject(projectDir, packageName) {
         '@types/jest': defaultDependencies['@types/jest']
       }
     };
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify(packageJson, null, 2)
@@ -1220,7 +1217,7 @@ async function createProtonNativeProject(projectDir, packageName) {
   try {
     // Create basic structure
     fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
-    
+
     // Create package.json
     const packageJson = {
       name: packageName,
@@ -1249,12 +1246,12 @@ async function createProtonNativeProject(projectDir, packageName) {
         'rimraf': defaultDependencies['rimraf']
       }
     };
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify(packageJson, null, 2)
     );
-    
+
     // Create babel config
     fs.writeFileSync(
       path.join(projectDir, '.babelrc'),
@@ -1262,7 +1259,7 @@ async function createProtonNativeProject(projectDir, packageName) {
         presets: ['@babel/preset-env', '@babel/preset-react']
       }, null, 2)
     );
-    
+
     // Create sample app
     fs.writeFileSync(
       path.join(projectDir, 'src', 'index.js'),
@@ -1301,7 +1298,7 @@ async function createSciterProject(projectDir, packageName) {
     // Create basic structure
     fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
     fs.mkdirSync(path.join(projectDir, 'resources'), { recursive: true });
-    
+
     // Create package.json
     const packageJson = {
       name: packageName,
@@ -1325,12 +1322,12 @@ async function createSciterProject(projectDir, packageName) {
         'rimraf': defaultDependencies['rimraf']
       }
     };
-    
+
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify(packageJson, null, 2)
     );
-    
+
     // Create sample HTML file
     fs.writeFileSync(
       path.join(projectDir, 'src', 'index.html'),
@@ -1349,7 +1346,7 @@ async function createSciterProject(projectDir, packageName) {
     </style>
     <script type="module">
       import * as sciter from '@sciter';
-      
+
       document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('app-name').textContent = '${packageName}';
       });
@@ -1361,7 +1358,7 @@ async function createSciterProject(projectDir, packageName) {
   </body>
 </html>`
     );
-    
+
     // Create rollup config
     fs.writeFileSync(
       path.join(projectDir, 'rollup.config.js'),
@@ -1419,12 +1416,12 @@ function updateProjectPackage(projectDir) {
     const packageJsonPath = path.join(projectDir, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      
+
       // Ensure scripts object exists
       if (!packageJson.scripts) {
         packageJson.scripts = {};
       }
-      
+
       // Required scripts based on monorepo pattern
       const requiredScripts = {
         clean: 'rimraf ./dist',
@@ -1458,7 +1455,7 @@ function updateProjectPackage(projectDir) {
  */
 function updateProjectTSConfig(projectDir) {
   const projectTsConfigPath = path.join(projectDir, 'tsconfig.json');
-  
+
   // Base configuration that all projects should have
   const baseTsConfig = {
     "extends": "../../tsconfig.json",
@@ -1495,7 +1492,7 @@ function updateProjectTSConfig(projectDir) {
       }
 
       for (const [key, value] of Object.entries(baseTsConfig.compilerOptions)) {
-        if (!existingConfig.compilerOptions[key] || 
+        if (!existingConfig.compilerOptions[key] ||
             (key === 'outDir' && !existingConfig.compilerOptions[key].includes('dist'))) {
           existingConfig.compilerOptions[key] = value;
           modified = true;
@@ -1542,11 +1539,11 @@ function createProjectVSCodeConfigs(projectDir) {
       }
     ]
   };
-    
+
   const launchJsonPath = path.join(projectDir, '.vscode', 'launch.json');
   fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
   console.log('Created launch.json');
-   
+
   // Create tasks.json
   const tasksJson = {
     "version": "2.0.0",
@@ -1588,7 +1585,7 @@ function createProjectVSCodeConfigs(projectDir) {
       }
     ]
   };
-    
+
   const tasksJsonPath = path.join(projectDir, '.vscode', 'tasks.json');
   fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
   console.log('Created tasks.json');
@@ -1627,19 +1624,19 @@ async function updateMonorepoPackage(rootDir, projectName) {
   if (fs.existsSync(rootPackageJsonPath)) {
     try {
       const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
-      
+
       // Add scripts following the existing pattern in the monorepo
       if (!rootPackageJson.scripts) {
         rootPackageJson.scripts = {};
       }
-      
+
       // Based on the provided package.json structure
       rootPackageJson.scripts[`clean:${projectName}`] = `npm run clean --workspace=@monorepo/${projectName}`;
       rootPackageJson.scripts[`lint:${projectName}`] = `npm run lint --workspace=@monorepo/${projectName}`;
       rootPackageJson.scripts[`test:${projectName}`] = `npm run test --workspace=@monorepo/${projectName}`;
       rootPackageJson.scripts[`build:${projectName}`] = `npm run build --workspace=@monorepo/${projectName}`;
       rootPackageJson.scripts[`start:${projectName}`] = `npm run start --workspace=@monorepo/${projectName}`;
-      
+
       fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2));
       console.log('Updated root package.json');
     } catch (error) {
@@ -1648,4 +1645,4 @@ async function updateMonorepoPackage(rootDir, projectName) {
   }
 }
 
-module.exports = { createNewProject };
+export { createNewProject };

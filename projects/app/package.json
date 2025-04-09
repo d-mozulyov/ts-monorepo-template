@@ -10,7 +10,5 @@
     "start": "node ./dist/index.js",
     "dev": "tsc && node ./dist/index.js"
   },
-  "dependencies": {
-    "@monorepo/app": "file:"
-  }
+  "dependencies": {}
 }

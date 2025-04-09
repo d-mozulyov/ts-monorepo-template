@@ -16,8 +16,8 @@ const compat = new FlatCompat({
 
 // Setup file patterns for monorepo
 const basePatterns = [
-  "packages/*/src/**/*.ts",
-  "packages/*/src/**/*.tsx",
+  "projects/*/src/**/*.ts",
+  "projects/*/src/**/*.tsx",
   // Don't lint files in node_modules and dist
   "!**/node_modules/**",
   "!**/dist/**",
@@ -29,7 +29,7 @@ export default [
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: ["./tsconfig.json", "./packages/*/tsconfig.json"],
+        project: ["./tsconfig.json", "./projects/*/tsconfig.json"],
         ecmaVersion: "latest",
         sourceType: "module",
         ecmaFeatures: {
@@ -69,9 +69,9 @@ export default [
       "comma-dangle": ["error", "always-multiline"],
 
       // TypeScript specific rules
-      "@typescript-eslint/no-unused-vars": ["error", { 
+      "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_" 
+        varsIgnorePattern: "^_"
       }],
       "@typescript-eslint/explicit-function-return-type": ["warn", {
         allowExpressions: true,
@@ -91,7 +91,7 @@ export default [
           "minimumDescriptionLength": 3
         },
       ],
-      
+
       // Import rules
       "import/no-unresolved": "error",
       "import/no-named-as-default": "off", // Turn off the warning about named exports vs default exports
@@ -119,7 +119,7 @@ export default [
 
   // Special rules for test files
   {
-    files: ["packages/*/src/**/*.test.ts", "packages/*/src/**/*.spec.ts"],
+    files: ["projects/*/src/**/*.test.ts", "projects/*/src/**/*.spec.ts"],
     rules: {
       // Relaxed rules for test files
       "@typescript-eslint/no-explicit-any": "off",
@@ -129,14 +129,14 @@ export default [
 
   // Type checking rules only for TypeScript files
   {
-    files: ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"],
+    files: ["projects/*/src/**/*.ts", "projects/*/src/**/*.tsx"],
     rules: {
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "@typescript-eslint/no-unnecessary-condition": "error",
     },
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.json", "./packages/*/tsconfig.json"],
+        project: ["./tsconfig.json", "./projects/*/tsconfig.json"],
       },
     },
   },
