@@ -9,11 +9,22 @@ import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
-import chalk from 'chalk';
 import { execSync } from 'child_process';
 import { exit } from 'process';
 import { fileURLToPath } from 'url';
 import { createNewProject } from './create-new-project.js';
+
+// Colors object for console output formatting
+const colors = {
+  // Text colors
+  red: (text) => `\x1b[31m${text}\x1b[0m`,
+  green: (text) => `\x1b[32m${text}\x1b[0m`,
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+  blue: (text) => `\x1b[34m${text}\x1b[0m`,
+  // Styles
+  bold: (text) => `\x1b[1m${text}\x1b[0m`,
+  italic: (text) => `\x1b[3m${text}\x1b[0m`
+};
 
 /**
  * Checks if script is running with administrator privileges on Windows
@@ -43,7 +54,7 @@ function findRootDir() {
 
   // Check if the current script is in the expected location
   if (!currentDir.endsWith(expectedScriptPath)) {
-    console.error(chalk.red('Error: This script must be located in <rootDir>/cli'));
+    console.error(colors.red('Error: This script must be located in <rootDir>/cli'));
     exit(1);
   }
 
@@ -81,9 +92,9 @@ function addFilesToGit(rootDir, files) {
         stdio: 'ignore'
       });
     }
-    console.log(chalk.green('✅ Files successfully added to Git'));
+    console.log(colors.green('✅ Files successfully added to Git'));
   } catch (error) {
-    console.error(chalk.red(`Error adding files to Git: ${error.message}`));
+    console.error(colors.red(`Error adding files to Git: ${error.message}`));
   }
 }
 
@@ -105,14 +116,14 @@ function createInteractiveMenu(title, options) {
     }
 
     // Render the title and navigation hint
-    console.log(chalk.bold(title));
-    console.log(chalk.italic('Use ↑/↓ arrow keys to navigate and Enter to select'));
+    console.log(colors.bold(title));
+    console.log(colors.italic('Use ↑/↓ arrow keys to navigate and Enter to select'));
     console.log('');
 
     // Render menu options
     options.forEach((option, index) => {
       if (index === selectedIndex) {
-        console.log(chalk.blue(`> ${option}`));
+        console.log(colors.blue(`> ${option}`));
       } else {
         console.log(`  ${option}`);
       }
@@ -177,7 +188,7 @@ async function askYesNo(question) {
 
   const answer = await new Promise((resolve) => {
     prompt.question(
-      chalk.yellow(`${question} (y/n): `),
+      colors.yellow(`${question} (y/n): `),
       (answer) => resolve(answer.trim().toLowerCase())
     );
   });
@@ -192,7 +203,7 @@ async function askYesNo(question) {
  * @returns {Promise<string[]>} Array of created file paths relative to rootDir
  */
 async function createNewSharedModule(rootDir) {
-  console.log(chalk.bold.blue('📦 Creating a new shared module'));
+  console.log(colors.bold(colors.blue('📦 Creating a new shared module')));
   console.log('');
 
   // Calculate shared directory path
@@ -208,29 +219,29 @@ async function createNewSharedModule(rootDir) {
     // Ask for module name
     moduleName = await new Promise((resolve) => {
       prompt.question(
-        chalk.yellow(`Enter module name (examples: "my-module.ts" or "my-path/my-module.ts"): `),
+        colors.yellow(`Enter module name (examples: "my-module.ts" or "my-path/my-module.ts"): `),
         (answer) => resolve(answer.trim())
       );
     });
 
     // Validate module name
     if (!moduleName) {
-      console.error(chalk.red('Error: Module name cannot be empty'));
+      console.error(colors.red('Error: Module name cannot be empty'));
       continue;
     }
 
     if (moduleName.startsWith('/')) {
-      console.error(chalk.red('Error: Module name cannot start with "/"'));
+      console.error(colors.red('Error: Module name cannot start with "/"'));
       continue;
     }
 
     if (moduleName.includes('\\')) {
-      console.error(chalk.red('Error: Use "/" instead of "\\" for directory separators'));
+      console.error(colors.red('Error: Use "/" instead of "\\" for directory separators'));
       continue;
     }
 
     if (!moduleName.endsWith('.ts')) {
-      console.error(chalk.red('Error: Module file must end with ".ts" extension'));
+      console.error(colors.red('Error: Module file must end with ".ts" extension'));
       continue;
     }
 
@@ -241,7 +252,7 @@ async function createNewSharedModule(rootDir) {
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       if (part.startsWith('.') || part.endsWith('.ts')) {
-        console.error(chalk.red(`Error: Directory "${part}" cannot start with "." or end with ".ts"`));
+        console.error(colors.red(`Error: Directory "${part}" cannot start with "." or end with ".ts"`));
         invalidPart = true;
         break;
       }
@@ -252,7 +263,7 @@ async function createNewSharedModule(rootDir) {
     // Check if module already exists
     const modulePath = path.join(sharedDir, moduleName);
     if (fs.existsSync(modulePath)) {
-      console.error(chalk.red(`Error: Module "${moduleName}" already exists at "${modulePath}"`));
+      console.error(colors.red(`Error: Module "${moduleName}" already exists at "${modulePath}"`));
       continue;
     }
 
@@ -283,7 +294,7 @@ export const ${moduleCodeName}_example = () => {
   const relModulePath = path.relative(rootDir, modulePath);
   createdFiles.push(relModulePath);
 
-  console.log(chalk.green(`✅ Created module: ${modulePath}`));
+  console.log(colors.green(`✅ Created module: ${modulePath}`));
 
   // Update or create index.ts files in each parent directory
   let childPath = modulePath;
@@ -299,7 +310,7 @@ export const ${moduleCodeName}_example = () => {
       if (!fs.existsSync(indexPath)) {
         fs.writeFileSync(indexPath, '');
         fileCreated = true;
-        console.log(chalk.blue(`Created index: ${indexPath}`));
+        console.log(colors.blue(`Created index: ${indexPath}`));
       }
 
       // Calculate the relative path for the import
@@ -327,7 +338,7 @@ export const ${moduleCodeName}_example = () => {
           createdFiles.push(relIndexPath);
         }
 
-        console.log(chalk.blue(`Updated index: ${indexPath} with export for ${importPath}`));
+        console.log(colors.blue(`Updated index: ${indexPath} with export for ${importPath}`));
       }
     }
 
@@ -347,13 +358,13 @@ export const ${moduleCodeName}_example = () => {
  * Main function that orchestrates the project creation workflow
  */
 async function main() {
-  console.log(chalk.bold.green('🚀 Create New Project in Monorepo'));
+  console.log(colors.bold(colors.green('🚀 Create New Project in Monorepo')));
   console.log('');
 
   // Check admin rights for Windows
   if (os.platform() === 'win32' && !isAdminWindows()) {
-    console.error(chalk.red('Error: This script requires administrator privileges on Windows.'));
-    console.error(chalk.yellow('Please run it again as administrator.'));
+    console.error(colors.red('Error: This script requires administrator privileges on Windows.'));
+    console.error(colors.yellow('Please run it again as administrator.'));
     exit(1);
   }
 
@@ -433,7 +444,7 @@ async function main() {
 
   // Output the final selection
   console.log('');
-  console.log(chalk.green('✅ Selected project type:'), chalk.bold(`${selectedProject}`));
+  console.log(colors.green('✅ Selected project type:'), colors.bold(`${selectedProject}`));
 
   // Create the new project, passing rootDir and selectedProject
   const projectDir = await createNewProject(rootDir, selectedProject);
@@ -441,15 +452,15 @@ async function main() {
   // Run npm install in the project directory
   if (projectDir) {
     console.log('');
-    console.log(chalk.blue(`Installing dependencies with npm...`));
+    console.log(colors.blue(`Installing dependencies with npm...`));
     try {
       execSync('npm install', {
         cwd: projectDir,
         stdio: 'inherit' // Show output in the console
       });
-      console.log(chalk.green('✅ Dependencies installed successfully'));
+      console.log(colors.green('✅ Dependencies installed successfully'));
     } catch (error) {
-      console.error(chalk.red(`Error installing dependencies: ${error.message}`));
+      console.error(colors.red(`Error installing dependencies: ${error.message}`));
     }
 
     // Check if the project directory is under Git control
@@ -466,6 +477,6 @@ async function main() {
 
 // Execute the main function
 main().catch(err => {
-  console.error(chalk.red('Error:'), err.message);
+  console.error(colors.red('Error:'), err.message);
   exit(1);
 });
