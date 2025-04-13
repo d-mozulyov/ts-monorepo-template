@@ -1,3 +1,4 @@
+#!/bin/sh
 : '
 :: This is a universal setup script that works on both Windows and Unix systems
 :: Check for Windows platform and run appropriate setup
@@ -12,6 +13,7 @@ exit $?
 : '
 :windows
 :: Windows-specific setup
+@echo [1A[K[1A[K[1A[K[1A[K
 :: Get the directory where this script resides
 @echo off
 setlocal enabledelayedexpansion
