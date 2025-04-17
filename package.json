@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "projects/*"
+    "projects/app"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces",
@@ -18,18 +18,5 @@
     "start:app": "npm run start --workspace=@monorepo/app"
   },
   "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.13.13",
-    "@types/supertest": "^6.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.29.0",
-    "eslint": "^9.23.0",
-    "eslint-plugin-import": "^2.31.0",
-    "jest": "^29.7.0",
-    "supertest": "^7.1.0",
-    "ts-jest": "^29.3.1",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.29.0",
-    "rimraf": "^6.0.1"
-  }
+  "devDependencies": {}
 }
