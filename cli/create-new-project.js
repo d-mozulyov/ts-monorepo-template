@@ -62,9 +62,10 @@ const defaultDependencies = {
  * Creates a new project in the monorepo
  * @param {string} rootDir - Root directory of the monorepo
  * @param {string} projectType - Type of project to create
+ * @param {string} [projectName] - Optional project name (will prompt if not provided or invalid)
  * @returns {string} - Path to the created project directory or empty string if creation failed
  */
-async function createNewProject(rootDir, projectType) {
+async function createNewProject(rootDir, projectType, projectName = '') {
   // Validate project type
   const validProjectTypes = [
     'Empty Node.js', 'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte',
@@ -89,22 +90,27 @@ async function createNewProject(rootDir, projectType) {
 
   try {
     // Read project name
-    let projectName = '';
     let projectLocalDir = '';
     let projectDir = '';
+
     while (true) {
-      projectName = await question('Enter project name (e.g. "my-app"): ');
+      if (!projectName) {
+        projectName = await question('Enter project name (e.g. "my-app"): ');
+      }
+
       projectName = projectName.trim();
 
       // Validate project name
       if (!projectName) {
         console.error('Project name cannot be empty');
+        projectName = ''; // Reset project name to force prompt on next iteration
         continue;
       }
 
       // Regexp check
       if (!/^[a-z0-9-_]+$/i.test(projectName)) {
         console.error('Project name can only contain letters, numbers, hyphens, and underscores');
+        projectName = ''; // Reset project name to force prompt on next iteration
         continue;
       }
 
@@ -115,6 +121,7 @@ async function createNewProject(rootDir, projectType) {
       // Check if directory already exists
       if (fs.existsSync(projectDir)) {
         console.error(`Directory already exists: ${projectDir}`);
+        projectName = ''; // Reset project name to force prompt on next iteration
         continue;
       }
 

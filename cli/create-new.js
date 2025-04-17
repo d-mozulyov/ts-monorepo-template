@@ -3,6 +3,7 @@
 /**
  * This script allows creating new projects/modules in the monorepo.
  * It provides an interactive CLI for selecting project types and templates.
+ * Supports optional arguments: [--remove | projectType] [projectName]
  */
 
 import os from 'os';
@@ -26,6 +27,12 @@ const colors = {
   italic: (text) => `\x1b[3m${text}\x1b[0m`
 };
 
+// Global constants for directory paths
+const __filename = fileURLToPath(import.meta.url);
+const __clidir = path.dirname(__filename);
+const __rootdir = path.dirname(__clidir);
+const __shareddir = path.join(__rootdir, 'shared');
+
 /**
  * Checks if script is running with administrator privileges on Windows
  * @returns {boolean} True if admin rights are available or not on Windows
@@ -38,28 +45,6 @@ function isAdminWindows() {
   } catch (error) {
     return false;
   }
-}
-
-/**
- * Determines the root directory of the monorepo
- * @returns {string} The absolute path to the root directory
- */
-function findRootDir() {
-  // Get the current script's directory
-  const __filename = fileURLToPath(import.meta.url);
-  const currentDir = path.dirname(__filename);
-  
-  // Expected path of the current script
-  const expectedScriptPath = path.join('cli');
-
-  // Check if the current script is in the expected location
-  if (!currentDir.endsWith(expectedScriptPath)) {
-    console.error(colors.red('Error: This script must be located in <rootDir>/cli'));
-    exit(1);
-  }
-
-  // Calculate the root directory by removing the expected path from the current directory
-  return currentDir.slice(0, currentDir.length - expectedScriptPath.length);
 }
 
 /**
@@ -199,30 +184,28 @@ async function askYesNo(question) {
 
 /**
  * Creates a new shared module
- * @param {string} rootDir - Path to the root directory
- * @returns {Promise<string[]>} Array of created file paths relative to rootDir
+ * @param {string} moduleName - Optional name for the module
+ * @returns {Promise<string[]>} Array of created file paths relative to __rootdir
  */
-async function createNewSharedModule(rootDir) {
+async function createNewSharedModule(moduleName = '') {
   console.log(colors.bold(colors.blue('📦 Creating a new shared module')));
   console.log('');
-
-  // Calculate shared directory path
-  const sharedDir = path.join(rootDir, 'shared');
 
   const prompt = createPrompt();
   const createdFiles = [];
 
-  let moduleName = '';
   let isValidModule = false;
 
   while (!isValidModule) {
     // Ask for module name
-    moduleName = await new Promise((resolve) => {
-      prompt.question(
-        colors.yellow(`Enter module name (examples: "my-module.ts" or "my-path/my-module.ts"): `),
-        (answer) => resolve(answer.trim())
-      );
-    });
+    if (!moduleName) {
+      moduleName = await new Promise((resolve) => {
+        prompt.question(
+          colors.yellow(`Enter module name (examples: "my-module.ts" or "my-path/my-module.ts"): `),
+          (answer) => resolve(answer.trim())
+        );
+      });
+    }
 
     // Validate module name
     if (!moduleName) {
@@ -261,7 +244,7 @@ async function createNewSharedModule(rootDir) {
     if (invalidPart) continue;
 
     // Check if module already exists
-    const modulePath = path.join(sharedDir, moduleName);
+    const modulePath = path.join(__shareddir, moduleName);
     if (fs.existsSync(modulePath)) {
       console.error(colors.red(`Error: Module "${moduleName}" already exists at "${modulePath}"`));
       continue;
@@ -273,7 +256,7 @@ async function createNewSharedModule(rootDir) {
   prompt.close();
 
   // Create module file and directories
-  const modulePath = path.join(sharedDir, moduleName);
+  const modulePath = path.join(__shareddir, moduleName);
   const moduleDir = path.dirname(modulePath);
 
   // Create directories if they don't exist
@@ -291,7 +274,7 @@ export const ${moduleCodeName}_example = () => {
 `);
 
   // Add to created files (relative path from rootDir)
-  const relModulePath = path.relative(rootDir, modulePath);
+  const relModulePath = path.relative(__rootdir, modulePath);
   createdFiles.push(relModulePath);
 
   console.log(colors.green(`✅ Created module: ${modulePath}`));
@@ -334,7 +317,7 @@ export const ${moduleCodeName}_example = () => {
 
         // Add to created files only if we created a new file
         if (fileCreated) {
-          const relIndexPath = path.relative(rootDir, indexPath);
+          const relIndexPath = path.relative(__rootdir, indexPath);
           createdFiles.push(relIndexPath);
         }
 
@@ -343,7 +326,7 @@ export const ${moduleCodeName}_example = () => {
     }
 
     // Stop if we've reached the shared directory
-    if (path.relative(sharedDir, baseDir) === '') {
+    if (path.relative(__shareddir, baseDir) === '') {
       break;
     }
 
@@ -352,6 +335,65 @@ export const ${moduleCodeName}_example = () => {
   }
 
   return createdFiles;
+}
+
+/**
+ * Removes a project or module
+ * @param {string} name - Name of the project or module to remove
+ */
+async function removeProjectOrModule(name) {
+  // ToDo: Implement removal logic
+}
+
+/**
+ * Selects project type through interactive menu
+ * @returns {Promise<string>} Selected project type
+ */
+async function selectOperation() {
+  // Primary project category menu
+  const projectCategories = [
+    'Shared module',
+    'Empty Node.js',
+    'Frontend: React, Next.js, Angular, Vue.js, Svelte',
+    'Backend: Express.js, NestJS, Fastify, AdonisJS, FeathersJS',
+    'Mobile: React Native, Expo, NativeScript, Ionic, Capacitor.js',
+    'Desktop: Electron, Tauri, Neutralino.js, Proton Native, Sciter',
+  ];
+
+  const categoryIndex = await createInteractiveMenu('What would you like to create?', projectCategories);
+  const selectedCategory = projectCategories[categoryIndex];
+
+  // Handle shared module separately
+  if (categoryIndex === 0) {
+    return 'Shared module';
+  }
+
+  // Handle Empty Node.js
+  if (categoryIndex === 1) {
+    return 'Empty Node.js';
+  }
+
+  // Secondary menu for selecting specific project
+  let projectOptions = [];
+  switch (categoryIndex) {
+    case 2: // Frontend
+      projectOptions = ['React', 'Next.js', 'Angular', 'Vue.js', 'Svelte'];
+      break;
+    case 3: // Backend
+      projectOptions = ['Express.js', 'NestJS', 'Fastify', 'AdonisJS', 'FeathersJS'];
+      break;
+    case 4: // Mobile
+      projectOptions = ['React Native', 'Expo', 'NativeScript', 'Ionic', 'Capacitor.js'];
+      break;
+    case 5: // Desktop
+      projectOptions = ['Electron', 'Tauri', 'Neutralino.js', 'Proton Native', 'Sciter'];
+      break;
+  }
+
+  // Add a blank line for visual separation before the second menu
+  console.log('');
+  const projectIndex = await createInteractiveMenu(`Select ${selectedCategory.split(':')[0]} project:`, projectOptions);
+  return projectOptions[projectIndex];
 }
 
 /**
@@ -368,37 +410,56 @@ async function main() {
     exit(1);
   }
 
-  // Find the root directory
-  const rootDir = findRootDir();
+  // Parse command-line arguments
+  const args = process.argv.slice(2);
+  const operation = args[0]; // --remove or project type
+  const projectName = args[1]; // Optional project/module name
 
-  // Calculate shared directory path
-  const sharedDir = path.join(rootDir, 'shared');
+  // Handle remove operation
+  if (operation === '--remove') {
+    if (!projectName) {
+      console.error(colors.red('Error: Project or module name is required for --remove'));
+      exit(1);
+    }
+    await removeProjectOrModule(projectName);
+    return;
+  }
 
-  // Primary project category menu
-  const projectCategories = [
-    'Shared module',
-    'Empty Node.js',
-    'Frontend: React, Next.js, Angular, Vue.js, Svelte',
-    'Backend: Express.js, NestJS, Fastify, AdonisJS, FeathersJS',
-    'Mobile: React Native, Expo, NativeScript, Ionic, Capacitor.js',
-    'Desktop: Electron, Tauri, Neutralino.js, Proton Native, Sciter',
-  ];
+  let selectedProject = null;
 
-  const categoryIndex = await createInteractiveMenu('What would you like to create?', projectCategories);
-  const selectedCategory = projectCategories[categoryIndex];
+  // If operation is specified, validate it
+  if (operation) {
+    const validProjects = [
+      'Shared module',
+      'Empty Node.js',
+      'React', 'Next.js', 'Angular', 'Vue.js', 'Svelte',
+      'Express.js', 'NestJS', 'Fastify', 'AdonisJS', 'FeathersJS',
+      'React Native', 'Expo', 'NativeScript', 'Ionic', 'Capacitor.js',
+      'Electron', 'Tauri', 'Neutralino.js', 'Proton Native', 'Sciter'
+    ];
+
+    if (!validProjects.includes(operation)) {
+      console.error(colors.red(`Error: Invalid project type "${operation}"`));
+      exit(1);
+    }
+    selectedProject = operation;
+  } else {
+    // Select project type interactively
+    selectedProject = await selectOperation();
+  }
 
   // Handle shared module separately
-  if (categoryIndex === 0) {
+  if (selectedProject === 'Shared module') {
     console.log('');
-    const createdFiles = await createNewSharedModule(rootDir);
+    const createdFiles = await createNewSharedModule(projectName);
 
     // Check if we need to add files to Git
-    if (createdFiles.length > 0 && isGitRepository(rootDir)) {
+    if (createdFiles.length > 0 && isGitRepository(__rootdir)) {
       console.log('');
 
       let promptMessage = '';
       if (createdFiles.length === 1) {
-        promptMessage = `Would you like to add the file \"${createdFiles[0]}\" to Git?`;
+        promptMessage = `Would you like to add the file "${createdFiles[0]}" to Git?`;
       } else {
         promptMessage = `Would you like to add ${createdFiles.length} files to Git?`;
       }
@@ -406,40 +467,11 @@ async function main() {
       const shouldAddToGit = await askYesNo(promptMessage);
 
       if (shouldAddToGit) {
-        addFilesToGit(rootDir, createdFiles);
+        addFilesToGit(__rootdir, createdFiles);
       }
     }
 
     return;
-  }
-
-  let selectedProject = null;
-
-  // Secondary menu for selecting specific project
-  if (categoryIndex >= 2) { // Not Shared module or Empty Node.js
-    let projectOptions = [];
-
-    switch (categoryIndex) {
-      case 2: // Frontend
-        projectOptions = ['React', 'Next.js', 'Angular', 'Vue.js', 'Svelte'];
-        break;
-      case 3: // Backend
-        projectOptions = ['Express.js', 'NestJS', 'Fastify', 'AdonisJS', 'FeathersJS'];
-        break;
-      case 4: // Mobile
-        projectOptions = ['React Native', 'Expo', 'NativeScript', 'Ionic', 'Capacitor.js'];
-        break;
-      case 5: // Desktop
-        projectOptions = ['Electron', 'Tauri', 'Neutralino.js', 'Proton Native', 'Sciter'];
-        break;
-    }
-
-    // Add a blank line for visual separation before the second menu
-    console.log('');
-    const projectIndex = await createInteractiveMenu(`Select ${selectedCategory.split(':')[0]} project:`, projectOptions);
-    selectedProject = projectOptions[projectIndex];
-  } else {
-    selectedProject = selectedCategory;
   }
 
   // Output the final selection
@@ -447,7 +479,7 @@ async function main() {
   console.log(colors.green('✅ Selected project type:'), colors.bold(`${selectedProject}`));
 
   // Create the new project, passing rootDir and selectedProject
-  const projectDir = await createNewProject(rootDir, selectedProject);
+  const projectDir = await createNewProject(__rootdir, selectedProject, projectName);
 
   // Run npm install in the project directory
   if (projectDir) {
@@ -464,12 +496,12 @@ async function main() {
     }
 
     // Check if the project directory is under Git control
-    if (isGitRepository(rootDir)) {
+    if (isGitRepository(__rootdir)) {
       console.log('');
       const shouldAddToGit = await askYesNo(`Would you like to add the directory "${projectDir}" to Git?`);
 
       if (shouldAddToGit) {
-        addFilesToGit(rootDir, [projectDir]);
+        addFilesToGit(__rootdir, [projectDir]);
       }
     }
   }
