@@ -194,10 +194,8 @@ async function createNewSharedModule(moduleName = '') {
   const prompt = createPrompt();
   const createdFiles = [];
 
-  let isValidModule = false;
-
-  while (!isValidModule) {
-    // Ask for module name
+  while (true) {
+    // Ask for module name if not provided
     if (!moduleName) {
       moduleName = await new Promise((resolve) => {
         prompt.question(
@@ -210,21 +208,25 @@ async function createNewSharedModule(moduleName = '') {
     // Validate module name
     if (!moduleName) {
       console.error(colors.red('Error: Module name cannot be empty'));
+      moduleName = '';
       continue;
     }
 
     if (moduleName.startsWith('/')) {
       console.error(colors.red('Error: Module name cannot start with "/"'));
+      moduleName = '';
       continue;
     }
 
     if (moduleName.includes('\\')) {
       console.error(colors.red('Error: Use "/" instead of "\\" for directory separators'));
+      moduleName = '';
       continue;
     }
 
     if (!moduleName.endsWith('.ts')) {
       console.error(colors.red('Error: Module file must end with ".ts" extension'));
+      moduleName = '';
       continue;
     }
 
@@ -241,16 +243,21 @@ async function createNewSharedModule(moduleName = '') {
       }
     }
 
-    if (invalidPart) continue;
+    if (invalidPart) {
+      moduleName = '';
+      continue;
+    }
 
     // Check if module already exists
     const modulePath = path.join(__shareddir, moduleName);
     if (fs.existsSync(modulePath)) {
       console.error(colors.red(`Error: Module "${moduleName}" already exists at "${modulePath}"`));
+      moduleName = '';
       continue;
     }
 
-    isValidModule = true;
+    // All validations passed
+    break;
   }
 
   prompt.close();
