@@ -23,6 +23,8 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
       packageName,
       files: {}
     },
+    dependencies: new Set(),
+    devDependencies: new Set(),
     func: {
       /**
        * Adds a file to the project settings, handling nested keys and file reading
@@ -107,7 +109,7 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
             // Check if directory is already ignored
             const isIgnored = gitignore.some(line => {
               const trimmed = line.trim();
-              return trimmed === d || trimmed === `${d}/` || trimmed === `/${d}` || trimmed === `/${d}/`;
+              return trimmed === d || trimmed === `${d}/`;
             });
 
             if (!isIgnored) {
@@ -175,6 +177,36 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
             fs.writeFileSync(fullpath, content, 'utf8');
           }
         }
+      },
+
+      /**
+       * Installs dependencies and devDependencies in the project directory using npm
+       */
+      install: function() {
+        // Log the start of dependency installation
+        console.log('Installing dependencies...');
+
+        // Build the npm install command
+        let command = 'npm install';
+        
+        // Add dependencies if any
+        if (this.dependencies.size > 0) {
+          command += ` ${Array.from(this.dependencies).join(' ')}`;
+        }
+
+        // Add devDependencies with -D flag if any
+        if (this.devDependencies.size > 0) {
+          command += ` -D ${Array.from(this.devDependencies).join(' ')}`;
+        }
+
+        // Always add --force flag
+        command += ' --force';
+
+        // Log the command being executed
+        console.log(`Executing command: ${command}`);
+
+        // Execute the command in the project directory
+        execSync(command, { cwd: this.basic.projectDir, stdio: 'inherit' });
       }
     }
   };

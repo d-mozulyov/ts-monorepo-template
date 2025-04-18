@@ -1,2 +1,5 @@
 # Node.js dependencies directory
 /node_modules/
+
+# Ignore all @shared symlinks
+**/@shared
