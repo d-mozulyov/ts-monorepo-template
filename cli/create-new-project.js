@@ -24,8 +24,15 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
       files: {}
     },
     func: {
+      /**
+       * Adds a file to the project settings, handling nested keys and file reading
+       * @param {string} key - Dot-separated key for nested access (e.g., 'part1.part2.part3')
+       * @param {string|string[]} paths - Single path or array of paths to search for the file
+       * @param {any} defValue - Default value if file is not found; type determines read format
+       * @returns {any} The value stored at the nested key
+       */
       addFile: function(key, paths, defValue) {
-        // Handle nested key access
+        // Handle nested key access by creating intermediate objects if needed
         const keyParts = key.split('.');
         let current = this;
         for (let i = 0; i < keyParts.length - 1; i++) {
@@ -36,14 +43,15 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
         }
         const lastKey = keyParts[keyParts.length - 1];
 
-        // Check if the key already exists
+        // Return existing value if key already exists
         if (current[lastKey] !== undefined) {
           return current[lastKey];
         }
 
+        // Determine full path based on input type
         let fullpath;
         if (Array.isArray(paths)) {
-          // Try each path in the array
+          // Try each path in the array until a file is found
           for (const p of paths) {
             const testPath = path.join(this.basic.rootDir, p);
             if (fs.existsSync(testPath)) {
@@ -51,39 +59,94 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
               break;
             }
           }
-          // If no file found, use first path
+          // If no file found, use the first path
           if (!fullpath) {
             fullpath = path.join(this.basic.rootDir, paths[0]);
           }
         } else {
-          // Single path string
+          // Use the single path provided
           fullpath = path.join(this.basic.rootDir, paths);
         }
 
-        // Store the fullpath
+        // Store the full path in files mapping
         this.basic.files[key] = fullpath;
 
+        // Read file or use default value
         let value;
         if (!fs.existsSync(fullpath)) {
           value = defValue;
         } else {
           if (Array.isArray(defValue)) {
-            // Read as array of strings
+            // Read file as array of strings for text files
             const content = fs.readFileSync(fullpath, 'utf8');
             value = content.split('\n').filter(line => line.trim() !== '');
           } else {
-            // Read as JSON object
+            // Read file as JSON object
             const content = fs.readFileSync(fullpath, 'utf8');
             value = JSON.parse(content);
           }
         }
 
-        // Set the nested value
+        // Set the value at the nested key
         current[lastKey] = value;
         return value;
       },
+
+      /**
+       * Adds directories to .gitignore and VS Code exclude settings
+       * @param {string|string[]} dir - Single directory or array of directories to ignore
+       */
+      ignoreDir: function(dir) {
+        // Convert single string to array for uniform processing
+        const dirs = Array.isArray(dir) ? dir : [dir];
+
+        for (const d of dirs) {
+          // Handle .gitignore updates
+          if (this.gitignore) {
+            const gitignore = this.gitignore;
+            // Check if directory is already ignored
+            const isIgnored = gitignore.some(line => {
+              const trimmed = line.trim();
+              return trimmed === d || trimmed === `${d}/` || trimmed === `/${d}` || trimmed === `/${d}/`;
+            });
+
+            if (!isIgnored) {
+              // Find or add the "# Ignore directories" section
+              const ignoreSectionIndex = gitignore.findIndex(line => line.trim() === '# Ignore directories');
+              if (ignoreSectionIndex === -1) {
+                gitignore.push('', '# Ignore directories');
+              }
+              // Add the directory to ignore
+              gitignore.push(`/${d}/`);
+            }
+          }
+
+          // Handle VS Code settings updates
+          if (this.vscode && this.vscode.settings) {
+            const vscodeSettings = this.vscode.settings;
+            // Initialize files.exclude if it doesn't exist
+            if (!vscodeSettings['files.exclude']) {
+              vscodeSettings['files.exclude'] = {};
+            }
+            // Initialize search.exclude if it doesn't exist
+            if (!vscodeSettings['search.exclude']) {
+              vscodeSettings['search.exclude'] = {};
+            }
+            // Mark directory as excluded in both settings
+            vscodeSettings['files.exclude'][d] = true;
+            vscodeSettings['search.exclude'][d] = true;
+          }
+        }
+      },
+
+      /**
+       * Saves all files registered in basic.files to their respective paths
+       * @throws {Error} If a nested key's value cannot be found
+       */
       save: function() {
+        // Iterate through all registered files
         for (const [key, fullpath] of Object.entries(this.basic.files)) {
+          // Navigate to the nested value using dot-separated key
           const keyParts = key.split('.');
           let current = this;
           for (const part of keyParts) {
@@ -94,7 +157,7 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
           }
           const value = current;
 
-          // Ensure directory exists
+          // Ensure the target directory exists
           const dir = path.dirname(fullpath);
           if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -102,12 +165,12 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
 
           // Save based on value type
           if (Array.isArray(value)) {
-            // Save as text with UTF-8 BOM
+            // Save as text file with UTF-8 BOM
             const bom = '\uFEFF';
             const content = bom + value.join('\n');
             fs.writeFileSync(fullpath, content, 'utf8');
           } else {
-            // Save as JSON
+            // Save as JSON file
             const content = JSON.stringify(value, null, 2);
             fs.writeFileSync(fullpath, content, 'utf8');
           }
