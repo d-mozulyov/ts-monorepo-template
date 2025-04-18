@@ -148,73 +148,73 @@ async function createNewProject(rootDir, projectType, projectName = '') {
  */
 async function createProjectByType(rootDir, projectDir, projectName, projectType) {
   // Create project settings object
-  const s = createProjectSettings(rootDir, projectDir, projectName, projectType);
+  const settings = createProjectSettings(rootDir, projectDir, projectName, projectType);
 
   let callback;
 
   switch (projectType) {
     case 'Empty Node.js':
-      callback = createEmptyNodeProject(s);
+      callback = createEmptyNodeProject(settings);
       break;
     case 'React':
-      callback = createReactProject(s);
+      callback = createReactProject(settings);
       break;
     case 'Next.js':
-      callback = createNextJsProject(s);
+      callback = createNextJsProject(settings);
       break;
     case 'Angular':
-      callback = createAngularProject(s);
+      callback = createAngularProject(settings);
       break;
     case 'Vue.js':
-      callback = createVueProject(s);
+      callback = createVueProject(settings);
       break;
     case 'Svelte':
-      callback = createSvelteProject(s);
+      callback = createSvelteProject(settings);
       break;
     case 'Express.js':
-      callback = createExpressProject(s);
+      callback = createExpressProject(settings);
       break;
     case 'NestJS':
-      callback = createNestJsProject(s);
+      callback = createNestJsProject(settings);
       break;
     case 'Fastify':
-      callback = createFastifyProject(s);
+      callback = createFastifyProject(settings);
       break;
     case 'AdonisJS':
-      callback = createAdonisJsProject(s);
+      callback = createAdonisJsProject(settings);
       break;
     case 'FeathersJS':
-      callback = createFeathersJsProject(s);
+      callback = createFeathersJsProject(settings);
       break;
     case 'React Native':
-      callback = createReactNativeProject(s);
+      callback = createReactNativeProject(settings);
       break;
     case 'Expo':
-      callback = createExpoProject(s);
+      callback = createExpoProject(settings);
       break;
     case 'NativeScript':
-      callback = createNativeScriptProject(s);
+      callback = createNativeScriptProject(settings);
       break;
     case 'Ionic':
-      callback = createIonicProject(s);
+      callback = createIonicProject(settings);
       break;
     case 'Capacitor.js':
-      callback = createCapacitorProject(s);
+      callback = createCapacitorProject(settings);
       break;
     case 'Electron':
-      callback = createElectronProject(s);
+      callback = createElectronProject(settings);
       break;
     case 'Tauri':
-      callback = createTauriProject(s);
+      callback = createTauriProject(settings);
       break;
     case 'Neutralino.js':
-      callback = createNeutralinoProject(s);
+      callback = createNeutralinoProject(settings);
       break;
     case 'Proton Native':
-      callback = createProtonNativeProject(s);
+      callback = createProtonNativeProject(settings);
       break;
     case 'Sciter':
-      callback = createSciterProject(s);
+      callback = createSciterProject(settings);
       break;
     default:
       throw new Error(`Unsupported project type: ${projectType}`);
@@ -244,7 +244,7 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
   }
 
   // Execute the save function
-  s.func.save();
+  settings.func.save();
 
   // Update monorepo package configuration
   await updateMonorepoPackage(rootDir, projectName);
@@ -252,10 +252,10 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
 
 /**
  * Creates an Empty Node.js project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createEmptyNodeProject(s) {
+function createEmptyNodeProject(settings) {
   // ToDo
 
   return function() {
@@ -265,11 +265,11 @@ function createEmptyNodeProject(s) {
 
 /**
  * Creates a React project using Vite
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createReactProject(s) {
-  // execSync(`npx create-vite ${s.basic.projectDir} --template react-ts`, { stdio: 'inherit' });
+function createReactProject(settings) {
+  // execSync(`npx create-vite ${settings.basic.projectDir} --template react-ts`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createReactProject");
@@ -278,11 +278,11 @@ function createReactProject(s) {
 
 /**
  * Creates a Next.js project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createNextJsProject(s) {
-  // execSync(`npx create-next-app ${s.basic.projectDir} --typescript`, { stdio: 'inherit' });
+function createNextJsProject(settings) {
+  // execSync(`npx create-next-app ${settings.basic.projectDir} --typescript`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createNextJsProject");
@@ -291,11 +291,11 @@ function createNextJsProject(s) {
 
 /**
  * Creates an Angular project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createAngularProject(s) {
-  // execSync(`npx @angular/cli new ${path.basename(s.basic.projectDir)} --directory ${s.basic.projectDir} --skip-git --skip-install`, { stdio: 'inherit' });
+function createAngularProject(settings) {
+  // execSync(`npx @angular/cli new ${path.basename(settings.basic.projectDir)} --directory ${settings.basic.projectDir} --skip-git --skip-install`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createAngularProject");
@@ -304,11 +304,11 @@ function createAngularProject(s) {
 
 /**
  * Creates a Vue.js project using Vite
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createVueProject(s) {
-  // execSync(`npx create-vite ${s.basic.projectDir} --template vue-ts`, { stdio: 'inherit' });
+function createVueProject(settings) {
+  // execSync(`npx create-vite ${settings.basic.projectDir} --template vue-ts`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createVueProject");
@@ -317,11 +317,11 @@ function createVueProject(s) {
 
 /**
  * Creates a Svelte project using Vite
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createSvelteProject(s) {
-  // execSync(`npx create-vite ${s.basic.projectDir} --template svelte-ts`, { stdio: 'inherit' });
+function createSvelteProject(settings) {
+  // execSync(`npx create-vite ${settings.basic.projectDir} --template svelte-ts`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createSvelteProject");
@@ -330,10 +330,10 @@ function createSvelteProject(s) {
 
 /**
  * Creates an Express.js project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createExpressProject(s) {
+function createExpressProject(settings) {
   return function() {
     console.log("ToDo: createExpressProject");
   };
@@ -341,11 +341,11 @@ function createExpressProject(s) {
 
 /**
  * Creates a NestJS project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createNestJsProject(s) {
-  // execSync(`npx @nestjs/cli new ${s.basic.projectDir} --skip-git --package-manager npm`, { stdio: 'inherit' });
+function createNestJsProject(settings) {
+  // execSync(`npx @nestjs/cli new ${settings.basic.projectDir} --skip-git --package-manager npm`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createNestJsProject");
@@ -354,10 +354,10 @@ function createNestJsProject(s) {
 
 /**
  * Creates a Fastify project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createFastifyProject(s) {
+function createFastifyProject(settings) {
   return function() {
     console.log("ToDo: createFastifyProject");
   };
@@ -365,11 +365,11 @@ function createFastifyProject(s) {
 
 /**
  * Creates an AdonisJS project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createAdonisJsProject(s) {
-  // execSync(`npx create-adonis-ts-app ${s.basic.projectDir} --api-only`, { stdio: 'inherit' });
+function createAdonisJsProject(settings) {
+  // execSync(`npx create-adonis-ts-app ${settings.basic.projectDir} --api-only`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createAdonisJsProject");
@@ -378,10 +378,10 @@ function createAdonisJsProject(s) {
 
 /**
  * Creates a FeathersJS project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createFeathersJsProject(s) {
+function createFeathersJsProject(settings) {
   return function() {
     console.log("ToDo: createFeathersJsProject");
   };
@@ -389,11 +389,11 @@ function createFeathersJsProject(s) {
 
 /**
  * Creates a React Native project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createReactNativeProject(s) {
-  // execSync(`npx react-native init ${path.basename(s.basic.projectDir)} --directory ${s.basic.projectDir} --template react-native-template-typescript`, { stdio: 'inherit' });
+function createReactNativeProject(settings) {
+  // execSync(`npx react-native init ${path.basename(settings.basic.projectDir)} --directory ${settings.basic.projectDir} --template react-native-template-typescript`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createReactNativeProject");
@@ -402,11 +402,11 @@ function createReactNativeProject(s) {
 
 /**
  * Creates an Expo project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createExpoProject(s) {
-  // execSync(`npx create-expo-app ${s.basic.projectDir} -t expo-template-blank-typescript`, { stdio: 'inherit' });
+function createExpoProject(settings) {
+  // execSync(`npx create-expo-app ${settings.basic.projectDir} -t expo-template-blank-typescript`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createExpoProject");
@@ -415,11 +415,11 @@ function createExpoProject(s) {
 
 /**
  * Creates a NativeScript project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createNativeScriptProject(s) {
-  // execSync(`npx @nativescript/cli create ${s.basic.projectDir} --ts`, { stdio: 'inherit' });
+function createNativeScriptProject(settings) {
+  // execSync(`npx @nativescript/cli create ${settings.basic.projectDir} --ts`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createNativeScriptProject");
@@ -428,11 +428,11 @@ function createNativeScriptProject(s) {
 
 /**
  * Creates an Ionic project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createIonicProject(s) {
-  // execSync(`npx @ionic/cli start ${s.basic.projectDir} blank --type=react --capacitor`, { stdio: 'inherit' });
+function createIonicProject(settings) {
+  // execSync(`npx @ionic/cli start ${settings.basic.projectDir} blank --type=react --capacitor`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createIonicProject");
@@ -441,10 +441,10 @@ function createIonicProject(s) {
 
 /**
  * Creates a Capacitor project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createCapacitorProject(s) {
+function createCapacitorProject(settings) {
   return function() {
     console.log("ToDo: createCapacitorProject");
   };
@@ -452,10 +452,10 @@ function createCapacitorProject(s) {
 
 /**
  * Creates an Electron project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createElectronProject(s) {
+function createElectronProject(settings) {
   return function() {
     console.log("ToDo: createElectronProject");
   };
@@ -463,10 +463,10 @@ function createElectronProject(s) {
 
 /**
  * Creates a Tauri project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createTauriProject(s) {
+function createTauriProject(settings) {
   return function() {
     console.log("ToDo: createTauriProject");
   };
@@ -474,11 +474,11 @@ function createTauriProject(s) {
 
 /**
  * Creates a Neutralino.js project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createNeutralinoProject(s) {
-  // execSync(`npx @neutralinojs/neu create ${s.basic.projectDir}`, { stdio: 'inherit' });
+function createNeutralinoProject(settings) {
+  // execSync(`npx @neutralinojs/neu create ${settings.basic.projectDir}`, { stdio: 'inherit' });
 
   return function() {
     console.log("ToDo: createNeutralinoProject");
@@ -487,10 +487,10 @@ function createNeutralinoProject(s) {
 
 /**
  * Creates a Proton Native project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createProtonNativeProject(s) {
+function createProtonNativeProject(settings) {
   return function() {
     console.log("ToDo: createProtonNativeProject");
   };
@@ -498,10 +498,10 @@ function createProtonNativeProject(s) {
 
 /**
  * Creates a Sciter project
- * @param {Object} s - Project settings object
+ * @param {Object} settings - Project settings object
  * @returns {Function} - Callback function
  */
-function createSciterProject(s) {
+function createSciterProject(settings) {
   return function() {
     console.log("ToDo: createSciterProject");
   };
