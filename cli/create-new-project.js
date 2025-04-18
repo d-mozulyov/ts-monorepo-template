@@ -20,21 +20,98 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
       projectDir,
       projectName,
       projectType,
-      packageName
+      packageName,
+      files: {}
     },
     func: {
-      save: function() {
-        console.log(`Saving project with settings:
-          rootDir: ${this.basic.rootDir}
-          projectDir: ${this.basic.projectDir}
-          projectName: ${this.basic.projectName}
-          projectType: ${this.basic.projectType}
-          packageName: ${this.basic.packageName}
-        `);
+      addFile: function(key, paths, defValue) {
+        // Handle nested key access
+        const keyParts = key.split('.');
+        let current = this;
+        for (let i = 0; i < keyParts.length - 1; i++) {
+          if (!current[keyParts[i]]) {
+            current[keyParts[i]] = {};
+          }
+          current = current[keyParts[i]];
+        }
+        const lastKey = keyParts[keyParts.length - 1];
+
+        // Check if the key already exists
+        if (current[lastKey] !== undefined) {
+          return current[lastKey];
+        }
+
+        let fullpath;
+        if (Array.isArray(paths)) {
+          // Try each path in the array
+          for (const p of paths) {
+            const testPath = path.join(this.basic.rootDir, p);
+            if (fs.existsSync(testPath)) {
+              fullpath = testPath;
+              break;
+            }
+          }
+          // If no file found, use first path
+          if (!fullpath) {
+            fullpath = path.join(this.basic.rootDir, paths[0]);
+          }
+        } else {
+          // Single path string
+          fullpath = path.join(this.basic.rootDir, paths);
+        }
+
+        // Store the fullpath
+        this.basic.files[key] = fullpath;
+
+        let value;
+        if (!fs.existsSync(fullpath)) {
+          value = defValue;
+        } else {
+          if (Array.isArray(defValue)) {
+            // Read as array of strings
+            const content = fs.readFileSync(fullpath, 'utf8');
+            value = content.split('\n').filter(line => line.trim() !== '');
+          } else {
+            // Read as JSON object
+            const content = fs.readFileSync(fullpath, 'utf8');
+            value = JSON.parse(content);
+          }
+        }
+
+        // Set the nested value
+        current[lastKey] = value;
+        return value;
       },
-      // Example of another function for demonstration
-      log: function() {
-        console.log(`Logging project: ${this.basic.projectName}`);
+      save: function() {
+        for (const [key, fullpath] of Object.entries(this.basic.files)) {
+          const keyParts = key.split('.');
+          let current = this;
+          for (const part of keyParts) {
+            if (current[part] === undefined) {
+              throw new Error(`Cannot find value for key ${key}`);
+            }
+            current = current[part];
+          }
+          const value = current;
+
+          // Ensure directory exists
+          const dir = path.dirname(fullpath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+
+          // Save based on value type
+          if (Array.isArray(value)) {
+            // Save as text with UTF-8 BOM
+            const bom = '\uFEFF';
+            const content = bom + value.join('\n');
+            fs.writeFileSync(fullpath, content, 'utf8');
+          } else {
+            // Save as JSON
+            const content = JSON.stringify(value, null, 2);
+            fs.writeFileSync(fullpath, content, 'utf8');
+          }
+        }
       }
     }
   };
