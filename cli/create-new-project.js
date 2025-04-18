@@ -119,7 +119,7 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
                 gitignore.push('', '# Ignore directories');
               }
               // Add the directory to ignore
-              gitignore.push(`/${d}/`);
+              gitignore.push(`${d}/`);
             }
           }
 
