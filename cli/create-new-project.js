@@ -148,6 +148,38 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
       },
 
       /**
+       * Sets the source directory for the project and updates lint script if needed
+       * @param {string} [value='src'] - The source directory path
+       */
+      setSourceDir: function(value = 'src') {
+        // Store the source directory
+        this.sourceDir = value;
+
+        // Update lint script if it's the default ToDo
+        if (this.package && this.package.scripts && this.package.scripts.lint === 'echo "ToDo: lint"') {
+          this.package.scripts.lint = `eslint ./${value}`;
+        }
+      },
+
+      /**
+       * Sets the build output directory and updates clean script if needed
+       * @param {string} [value='dist'] - The build output directory path
+       */
+      setBuildDir: function(value = 'dist') {
+        // Store the build directory
+        this.buildDir = value;
+
+        // Ignore the build directory
+        this.func.ignoreDir(value);
+
+        // Update clean script if it's the default ToDo and add rimraf
+        if (this.package && this.package.scripts && this.package.scripts.clean === 'echo "ToDo: clean"') {
+          this.package.scripts.clean = `rimraf ./${value}`;
+          this.devDependencies.add('rimraf');
+        }
+      },
+
+      /**
        * Saves all files registered in basic.files to their respective paths
        * @throws {Error} If a nested key's value cannot be found
        */
@@ -410,16 +442,16 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
   // Execute the save function
   settings.func.save();
 
-  // Create symlink to shared directory
-  createProjectSymlinks(settings);
+  // Update monorepo package configuration
+  updateMonorepoPackage(settings);
 
   // Execute the callback returned from create function
   if (typeof callback === 'function') {
     callback();
   }
 
-  // Update monorepo package configuration
-  await updateMonorepoPackage(settings);
+  // Create symlink to shared directory
+  createProjectSymlinks(settings);
 
   // Install project dependencies
   settings.func.install();
@@ -886,13 +918,53 @@ function prepareProjectOtherConfigs(settings) {
 }
 
 /**
+ * Updates the monorepo package.json to include the new project
+ * @param {Object} settings - Project settings object
+ */
+function updateMonorepoPackage(settings) {
+  // Update root package.json
+  const rootPackagePath = path.join(settings.basic.rootDir, 'package.json');
+  if (fs.existsSync(rootPackagePath)) {
+    try {
+      const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, 'utf8'));
+
+      // Add project directory to workspaces if not already present
+      if (!rootPackage.workspaces) {
+        rootPackage.workspaces = [];
+      }
+      rootPackage.workspaces.push(settings.basic.projectDir);
+
+      // Add scripts following the existing pattern in the monorepo
+      if (!rootPackage.scripts) {
+        rootPackage.scripts = {};
+      }
+
+      // Based on the provided package.json structure
+      const projectName = settings.basic.projectName;
+      const packageName = settings.basic.packageName;
+      rootPackage.scripts[`clean:${projectName}`] = `npm run clean --workspace=${packageName}`;
+      rootPackage.scripts[`lint:${projectName}`] = `npm run lint --workspace=${packageName}`;
+      rootPackage.scripts[`test:${projectName}`] = `npm run test --workspace=${packageName}`;
+      rootPackage.scripts[`build:${projectName}`] = `npm run build --workspace=${packageName}`;
+      rootPackage.scripts[`start:${projectName}`] = `npm run start --workspace=${packageName}`;
+
+      fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
+      console.log('Updated root package.json');
+    } catch (error) {
+      console.error('Error updating root package.json:', error);
+    }
+  }
+}
+
+/**
  * Creates symlink to shared directory for the project
  * @param {Object} settings - Project settings object
  */
 function createProjectSymlinks(settings) {
+  const sourceDir = settings.sourceDir || 'src';
   const sharedDir = path.join(settings.basic.rootDir, 'shared');
-  const sharedSymlink = path.join(settings.basic.projectDir, 'src', '@shared');
-  const srcDir = path.join(settings.basic.projectDir, 'src');
+  const sharedSymlink = path.join(settings.basic.projectDir, sourceDir, '@shared');
+  const srcDir = path.join(settings.basic.projectDir, sourceDir);
 
   try {
     // Create source directory if it doesn't exist
@@ -922,38 +994,4 @@ function createProjectSymlinks(settings) {
     console.error('You may need administrative privileges to create symlinks');
   }
 }
-
-/**
- * Updates the monorepo package.json to include the new project
- * @param {Object} settings - Project settings object
- */
-async function updateMonorepoPackage(settings) {
-  // Update root package.json
-  const rootPackagePath = path.join(settings.basic.rootDir, 'package.json');
-  if (fs.existsSync(rootPackagePath)) {
-    try {
-      const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, 'utf8'));
-
-      // Add scripts following the existing pattern in the monorepo
-      if (!rootPackage.scripts) {
-        rootPackage.scripts = {};
-      }
-
-      // Based on the provided package.json structure
-      const projectName = settings.basic.projectName;
-      const packageName = settings.basic.packageName;
-      rootPackage.scripts[`clean:${projectName}`] = `npm run clean --workspace=${packageName}`;
-      rootPackage.scripts[`lint:${projectName}`] = `npm run lint --workspace=${packageName}`;
-      rootPackage.scripts[`test:${projectName}`] = `npm run test --workspace=${packageName}`;
-      rootPackage.scripts[`build:${projectName}`] = `npm run build --workspace=${packageName}`;
-      rootPackage.scripts[`start:${projectName}`] = `npm run start --workspace=${packageName}`;
-
-      fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
-      console.log('Updated root package.json');
-    } catch (error) {
-      console.error('Error updating root package.json:', error);
-    }
-  }
-}
-
 export { createNewProject };
