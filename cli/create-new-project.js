@@ -34,6 +34,12 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
        * @returns {any} The value stored at the nested key
        */
       addFile: function(key, paths, defValue) {
+        // Local function to get full path with normalized separators
+        const getFullPath = (p) => {
+          const normalizedPath = p.replace(/\//g, path.sep);
+          return path.join(this.basic.projectDir, normalizedPath);
+        };
+
         // Handle nested key access by creating intermediate objects if needed
         const keyParts = key.split('.');
         let current = this;
@@ -55,7 +61,7 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
         if (Array.isArray(paths)) {
           // Try each path in the array until a file is found
           for (const p of paths) {
-            const testPath = path.join(this.basic.rootDir, p);
+            const testPath = getFullPath(p);
             if (fs.existsSync(testPath)) {
               fullpath = testPath;
               break;
@@ -63,11 +69,11 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
           }
           // If no file found, use the first path
           if (!fullpath) {
-            fullpath = path.join(this.basic.rootDir, paths[0]);
+            fullpath = getFullPath(paths[0]);
           }
         } else {
           // Use the single path provided
-          fullpath = path.join(this.basic.rootDir, paths);
+          fullpath = getFullPath(paths);
         }
 
         // Store the full path in files mapping
@@ -188,7 +194,7 @@ function createProjectSettings(rootDir, projectDir, projectName, projectType) {
 
         // Build the npm install command
         let command = 'npm install';
-        
+
         // Add dependencies if any
         if (this.dependencies.size > 0) {
           command += ` ${Array.from(this.dependencies).join(' ')}`;
@@ -392,34 +398,31 @@ async function createProjectByType(rootDir, projectDir, projectName, projectType
       throw new Error(`Unsupported project type: ${projectType}`);
   }
 
+  // Prepare package.json
+  prepareProjectPackage(settings);
+
+  // Prepare VSCode configurations
+  prepareProjectVSCodeConfigs(settings);
+
+  // Prepare other configurations
+  prepareProjectOtherConfigs(settings);
+
+  // Execute the save function
+  settings.func.save();
+
   // Create symlink to shared directory
-  const sharedDir = path.join(rootDir, 'shared');
-  const sharedSymlink = path.join(projectDir, 'src', '@shared');
-  const srcDir = path.join(projectDir, 'src');
-  if (!fs.existsSync(srcDir)) {
-    fs.mkdirSync(srcDir, { recursive: true });
-  }
-  createSymlink(sharedDir, sharedSymlink);
-
-  // Verify package.json exists and contains required scripts
-  updateProjectPackage(projectDir);
-
-  // Update tsconfig.json for proper monorepo integration
-  updateProjectTSConfig(projectDir);
-
-  // VSCode configurations
-  createProjectVSCodeConfigs(projectDir);
+  createProjectSymlinks(settings);
 
   // Execute the callback returned from create function
   if (typeof callback === 'function') {
     callback();
   }
 
-  // Execute the save function
-  settings.func.save();
-
   // Update monorepo package configuration
-  await updateMonorepoPackage(rootDir, projectName);
+  await updateMonorepoPackage(settings);
+
+  // Install project dependencies
+  settings.func.install();
 }
 
 /**
@@ -680,150 +683,77 @@ function createSciterProject(settings) {
 }
 
 /**
- * Creates symlink
- * @param {string} target - Target directory
- * @param {string} linkPath - Link path
+ * Prepares package.json with required scripts for a project
+ * @param {Object} settings - Project settings object
  */
-function createSymlink(target, linkPath) {
-  try {
-    // Create directory structure if it doesn't exist
-    const linkDir = path.dirname(linkPath);
-    if (!fs.existsSync(linkDir)) {
-      fs.mkdirSync(linkDir, { recursive: true });
-    }
-
-    // Remove existing symlink if it exists
-    if (fs.existsSync(linkPath)) {
-      fs.unlinkSync(linkPath);
-    }
-
-    // Determine relative path
-    const relativeTarget = path.relative(path.dirname(linkPath), target);
-
-    // Create symlink
-    fs.symlinkSync(relativeTarget, linkPath, 'dir');
-    console.log(`Created symlink: ${linkPath} -> ${relativeTarget}`);
-  } catch (error) {
-    console.error('Error creating symlink:', error);
-    console.error('You may need administrative privileges to create symlinks');
-  }
-}
-
-/**
- * Updates package.json with required scripts for a project
- * @param {string} projectDir - Project directory
- */
-function updateProjectPackage(projectDir) {
-  try {
-    // Check if package.json exists in the project
-    const packageJsonPath = path.join(projectDir, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-
-      // Ensure scripts object exists
-      if (!packageJson.scripts) {
-        packageJson.scripts = {};
+function prepareProjectPackage(settings) {
+  // Clean up unnecessary directories and files
+  for (const name of ['.git', 'node_modules', 'package-lock.json']) {
+    const itemPath = path.join(settings.basic.projectDir, name);
+    const isFile = (name === 'package-lock.json');
+    if (fs.existsSync(itemPath)) {
+      if (isFile) {
+        fs.unlinkSync(itemPath);
+      } else {
+        fs.rmSync(itemPath, { recursive: true, force: true });
       }
-
-      // Required scripts based on monorepo pattern
-      const requiredScripts = {
-        clean: 'rimraf ./dist',
-        lint: 'eslint ./src',
-        test: 'jest --passWithNoTests --config=../../jest.config.js',
-        build: 'tsc',
-        start: 'node ./dist/index.js',
-        dev: 'tsc && node ./dist/index.js'
-      };
-
-      // Add missing scripts
-      for (const [scriptName, existingCommand] of Object.entries(packageJson.scripts || {})) {
-        requiredScripts[scriptName] = existingCommand;
-      }
-      packageJson.scripts = requiredScripts;
-
-      // Update package.json
-      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-    } else {
-      console.warn('package.json not found in the project');
+      console.log(`Removed ${name}`);
     }
-  } catch (error) {
-    console.error('Error updating package.json:', error);
-    throw error;
   }
-}
 
-/**
- * Updates or creates the tsconfig.json of the project with proper monorepo settings
- * @param {string} projectDir - Project directory
- */
-function updateProjectTSConfig(projectDir) {
-  const projectTsConfigPath = path.join(projectDir, 'tsconfig.json');
+  // Load or create package.json
+  let package = settings.func.addFile('package', 'package.json', {});
 
-  // Base configuration that all projects should have
-  const baseTsConfig = {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-      "outDir": "./dist",
-      "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
-      "rootDir": "./src"
-    },
-    "include": [
-      "src/**/*"
-    ]
+  // Create new package object
+  const newPackage = {
+    "name": settings.basic.packageName,
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {},
+    "dependencies": {},
+    "devDependencies": {}
   };
 
-  try {
-    if (!fs.existsSync(projectTsConfigPath)) {
-      // Create new tsconfig.json if it doesn't exist
-      fs.writeFileSync(projectTsConfigPath, JSON.stringify(baseTsConfig, null, 2));
-      console.log('Created tsconfig.json');
-    } else {
-      // Update existing tsconfig.json
-      const existingConfig = JSON.parse(fs.readFileSync(projectTsConfigPath, 'utf8'));
-      let modified = false;
-
-      // Ensure extends is set correctly
-      if (existingConfig.extends !== baseTsConfig.extends) {
-        existingConfig.extends = baseTsConfig.extends;
-        modified = true;
-      }
-
-      // Ensure compilerOptions exists and has required properties
-      if (!existingConfig.compilerOptions) {
-        existingConfig.compilerOptions = {};
-        modified = true;
-      }
-
-      for (const [key, value] of Object.entries(baseTsConfig.compilerOptions)) {
-        if (!existingConfig.compilerOptions[key] ||
-            (key === 'outDir' && !existingConfig.compilerOptions[key].includes('dist'))) {
-          existingConfig.compilerOptions[key] = value;
-          modified = true;
-        }
-      }
-
-      if (modified) {
-        fs.writeFileSync(projectTsConfigPath, JSON.stringify(existingConfig, null, 2));
-        console.log('Updated tsconfig.json with correct structure');
-      }
+  // Transfer existing sections
+  for (const section of ['scripts', 'dependencies', 'devDependencies']) {
+    if (package[section]) {
+      newPackage[section] = package[section];
     }
-  } catch (error) {
-    console.error('Error updating tsconfig.json:', error);
   }
+
+  // Transfer other sections from package
+  for (const [key, value] of Object.entries(package)) {
+    if (!(key in newPackage)) {
+      newPackage[key] = value;
+    }
+  }
+
+  // Required scripts based on monorepo pattern
+  const requiredScripts = {
+    clean: 'echo "ToDo: clean"',
+    lint: 'echo "ToDo: lint"',
+    test: 'jest --passWithNoTests',
+    build: 'echo "ToDo: build"',
+    start: 'echo "ToDo: start"',
+    dev: 'echo "ToDo: dev"'
+  };
+
+  // Add missing scripts
+  for (const [scriptName, existingCommand] of Object.entries(newPackage.scripts || {})) {
+    requiredScripts[scriptName] = existingCommand;
+  }
+  newPackage.scripts = requiredScripts;
+
+  // Update package
+  settings.package = newPackage;
 }
 
 /**
- * Creates VSCode configuration files for the project
- * @param {string} projectDir - Project directory
+ * Prepares VSCode configuration files for the project
+ * @param {Object} settings - Project settings object
  */
-function createProjectVSCodeConfigs(projectDir) {
-  // Ensure .vscode directory exists
-  const vscodeDir = path.join(projectDir, '.vscode');
-  if (!fs.existsSync(vscodeDir)) {
-    fs.mkdirSync(vscodeDir, { recursive: true });
-  }
-
-  // Create launch.json
+function prepareProjectVSCodeConfigs(settings) {
+  // Define launch.json
   const launchJson = {
     "version": "0.2.0",
     "configurations": [
@@ -843,11 +773,7 @@ function createProjectVSCodeConfigs(projectDir) {
     ]
   };
 
-  const launchJsonPath = path.join(projectDir, '.vscode', 'launch.json');
-  fs.writeFileSync(launchJsonPath, JSON.stringify(launchJson, null, 2));
-  console.log('Created launch.json');
-
-  // Create tasks.json
+  // Define tasks.json
   const tasksJson = {
     "version": "2.0.0",
     "tasks": [
@@ -889,11 +815,7 @@ function createProjectVSCodeConfigs(projectDir) {
     ]
   };
 
-  const tasksJsonPath = path.join(projectDir, '.vscode', 'tasks.json');
-  fs.writeFileSync(tasksJsonPath, JSON.stringify(tasksJson, null, 2));
-  console.log('Created tasks.json');
-
-  // Create settings.json
+  // Define settings.json
   const settingsJson = {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -902,45 +824,131 @@ function createProjectVSCodeConfigs(projectDir) {
     "eslint.validate": [
       "typescript"
     ],
-    "typescript.tsdk": "node_modules/typescript/lib",
-    "files.exclude": {
-      "dist": true
-    },
-    "search.exclude": {
-      "dist": true
-    }
+    "typescript.tsdk": "node_modules/typescript/lib"
   };
 
-  const settingsJsonPath = path.join(projectDir, '.vscode', 'settings.json');
-  fs.writeFileSync(settingsJsonPath, JSON.stringify(settingsJson, null, 2));
-  console.log('Created settings.json');
+  // Register all VSCode configuration files
+  settings.func.addFile('vscode.launch', '.vscode/launch.json', launchJson);
+  settings.func.addFile('vscode.tasks', '.vscode/tasks.json', tasksJson);
+  settings.func.addFile('vscode.settings', '.vscode/settings.json', settingsJson);
+}
+
+/**
+ * Prepares other configuration files for the project, including tsconfig.json and .gitignore
+ * @param {Object} settings - Project settings object
+ */
+function prepareProjectOtherConfigs(settings) {
+  // Load or create .gitignore
+  const gitignore = settings.func.addFile('gitignore', '.gitignore', []);
+
+  // Add VSCode-specific .gitignore entries
+  if (gitignore.length > 0) {
+    gitignore.push('');
+  }
+  gitignore.push(
+    '# VSCode files',
+    '.vscode/*',
+    '!.vscode/settings.json',
+    '!.vscode/tasks.json',
+    '!.vscode/launch.json',
+    '!.vscode/extensions.json'
+  );
+
+  // Ignore node_modules
+  settings.func.ignoreDir('node_modules');
+
+  // Default tsconfig configuration
+  const defaultTSConfig = {
+    "compilerOptions": {
+      "target": "ES2020",
+      "module": "CommonJS",
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "strict": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "sourceMap": true,
+      "declaration": true,
+      "declarationMap": true,
+      "composite": true,
+      "incremental": true,
+      "outDir": "./dist",
+      "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+      "rootDir": "./src"
+    },
+    "include": [
+      "src/**/*"
+    ]
+  };
+
+  // Load or create tsconfig.json
+  settings.func.addFile('tsconfig', 'tsconfig.json', defaultTSConfig);
+}
+
+/**
+ * Creates symlink to shared directory for the project
+ * @param {Object} settings - Project settings object
+ */
+function createProjectSymlinks(settings) {
+  const sharedDir = path.join(settings.basic.rootDir, 'shared');
+  const sharedSymlink = path.join(settings.basic.projectDir, 'src', '@shared');
+  const srcDir = path.join(settings.basic.projectDir, 'src');
+
+  try {
+    // Create source directory if it doesn't exist
+    if (!fs.existsSync(srcDir)) {
+      fs.mkdirSync(srcDir, { recursive: true });
+    }
+
+    // Create directory structure for symlink
+    const linkDir = path.dirname(sharedSymlink);
+    if (!fs.existsSync(linkDir)) {
+      fs.mkdirSync(linkDir, { recursive: true });
+    }
+
+    // Remove existing symlink if it exists
+    if (fs.existsSync(sharedSymlink)) {
+      fs.unlinkSync(sharedSymlink);
+    }
+
+    // Determine relative path
+    const relativeTarget = path.relative(path.dirname(sharedSymlink), sharedDir);
+
+    // Create symlink
+    fs.symlinkSync(relativeTarget, sharedSymlink, 'dir');
+    console.log(`Created symlink: ${sharedSymlink} -> ${relativeTarget}`);
+  } catch (error) {
+    console.error('Error creating symlink:', error);
+    console.error('You may need administrative privileges to create symlinks');
+  }
 }
 
 /**
  * Updates the monorepo package.json to include the new project
- * @param {string} rootDir - Root directory of the monorepo
- * @param {string} projectName - Project name in slug format
+ * @param {Object} settings - Project settings object
  */
-async function updateMonorepoPackage(rootDir, projectName) {
+async function updateMonorepoPackage(settings) {
   // Update root package.json
-  const rootPackageJsonPath = path.join(rootDir, 'package.json');
-  if (fs.existsSync(rootPackageJsonPath)) {
+  const rootPackagePath = path.join(settings.basic.rootDir, 'package.json');
+  if (fs.existsSync(rootPackagePath)) {
     try {
-      const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
+      const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, 'utf8'));
 
       // Add scripts following the existing pattern in the monorepo
-      if (!rootPackageJson.scripts) {
-        rootPackageJson.scripts = {};
+      if (!rootPackage.scripts) {
+        rootPackage.scripts = {};
       }
 
       // Based on the provided package.json structure
-      rootPackageJson.scripts[`clean:${projectName}`] = `npm run clean --workspace=@monorepo/${projectName}`;
-      rootPackageJson.scripts[`lint:${projectName}`] = `npm run lint --workspace=@monorepo/${projectName}`;
-      rootPackageJson.scripts[`test:${projectName}`] = `npm run test --workspace=@monorepo/${projectName}`;
-      rootPackageJson.scripts[`build:${projectName}`] = `npm run build --workspace=@monorepo/${projectName}`;
-      rootPackageJson.scripts[`start:${projectName}`] = `npm run start --workspace=@monorepo/${projectName}`;
+      const projectName = settings.basic.projectName;
+      const packageName = settings.basic.packageName;
+      rootPackage.scripts[`clean:${projectName}`] = `npm run clean --workspace=${packageName}`;
+      rootPackage.scripts[`lint:${projectName}`] = `npm run lint --workspace=${packageName}`;
+      rootPackage.scripts[`test:${projectName}`] = `npm run test --workspace=${packageName}`;
+      rootPackage.scripts[`build:${projectName}`] = `npm run build --workspace=${packageName}`;
+      rootPackage.scripts[`start:${projectName}`] = `npm run start --workspace=${packageName}`;
 
-      fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2));
+      fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
       console.log('Updated root package.json');
     } catch (error) {
       console.error('Error updating root package.json:', error);
