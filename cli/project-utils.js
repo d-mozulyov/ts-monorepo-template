@@ -55,10 +55,7 @@ function hasSymlinkPermissions() {
 function hasGit() {
   if (typeof hasGit.cachedResult === 'undefined') {
     try {
-      execSync('git rev-parse --is-inside-work-tree', {
-        cwd: __rootdir,
-        stdio: 'ignore'
-      });
+      execSync('git rev-parse --is-inside-work-tree', { cwd: __rootdir, stdio: 'ignore' });
       hasGit.cachedResult = true;
     } catch (error) {
       hasGit.cachedResult = false;
@@ -74,10 +71,24 @@ function hasGit() {
  * @returns {string} - Full or local path to the project directory
  */
 function getProjectDir(projectName, isLocal = false) {
+  // Normalize projectName separators to the current OS
+  const normalizedProjectName = projectName.replace(/[\\/]/g, path.sep);
+  
   if (isLocal) {
-    return path.join('projects', projectName);
+    return path.join('projects', normalizedProjectName);
   }
-  return path.join(__rootdir, 'projects', projectName);
+  return path.join(__rootdir, 'projects', normalizedProjectName);
+}
+
+/**
+ * Generates a package name for the project in the monorepo
+ * @param {string} projectName - Project name in slug format
+ * @returns {string} - Formatted package name with '@monorepo/' prefix and normalized separators
+ */
+function getProjectPackageName(projectName) {
+  // Replace any separators with hyphen and ensure consistent format
+  const normalizedProjectName = projectName.replace(/[\\/]/g, '-');
+  return `@monorepo/${normalizedProjectName}`;
 }
 
 /**
@@ -173,7 +184,7 @@ function setupProjectSymlinks(projectName) {
 function createProjectSettings(projectName, projectType) {
   const projectDir = getProjectDir(projectName);
   const projectParentDir = path.dirname(projectDir);
-  const packageName = `@monorepo/${projectName}`;
+  const packageName = getProjectPackageName(projectName);
 
   const settings = {
     basic: {
@@ -445,8 +456,9 @@ function createProjectSettings(projectName, projectType) {
         this.func.addSymlink(`${normalizedValue}/@shared`, 'SHARED');
 
         // Update lint script if it's the default ToDo
-        if (this.package && this.package.scripts && this.package.scripts.lint === 'echo "ToDo: lint"') {
+        if (this.package && this.package.scripts && this.package.scripts.lint === 'echo ToDo: lint') {
           this.package.scripts.lint = `eslint ./${normalizedValue}`;
+          this.func.addEslintDependencies();
         }
 
         // Update tsconfig if value is not 'src'
@@ -479,7 +491,7 @@ function createProjectSettings(projectName, projectType) {
         this.func.ignoreDir(normalizedValue);
 
         // Update clean script if it's the default ToDo and add rimraf
-        if (this.package && this.package.scripts && this.package.scripts.clean === 'echo "ToDo: clean"') {
+        if (this.package && this.package.scripts && this.package.scripts.clean === 'echo ToDo: clean') {
           this.package.scripts.clean = `rimraf ./${normalizedValue}`;
           this.func.addDevDependencies('rimraf');
         }
@@ -493,6 +505,19 @@ function createProjectSettings(projectName, projectType) {
             this.tsconfig.compilerOptions.tsBuildInfoFile = `./${normalizedValue}/${this.tsconfig.compilerOptions.tsBuildInfoFile.slice(8)}`;
           }
         }
+      },
+
+      /**
+       * Configures Jest testing for the project and updates related configurations
+       */
+      setJest: function() {
+        // Update test script if it's the default ToDo
+        if (this.package && this.package.scripts && this.package.scripts.test === 'echo ToDo: test') {
+          this.package.scripts.test = 'jest --passWithNoTests';
+        }
+
+        // Add Jest dependencies
+        this.func.addJestDependencies();
       },
 
       /**
@@ -554,11 +579,13 @@ function createProjectSettings(projectName, projectType) {
           command += ` -D ${Array.from(this.basic.devDependencies).join(' ')}`;
         }
 
-        // Always add --force flag
-        command += ' --force';
+        // Ensure npm install is run before the command if it includes dependencies
+        if (command !== 'npm install') {
+          command = `npm install --loglevel=error && ${command}`;
+        }
 
+        // Execute the command in the project directory
         try {
-          // Execute the command in the project directory
           execSync(command, { cwd: this.basic.projectDir, stdio: 'inherit' });
         } catch (error) {
           throw new Error(`Failed to install dependencies: ${error.message}`);
@@ -607,13 +634,14 @@ function createProjectSettings(projectName, projectType) {
 }
 
 export {
-  colors,
   __clidir,
   __rootdir,
   __shareddir,
+  colors,
   hasSymlinkPermissions,
   hasGit,
   getProjectDir,
+  getProjectPackageName,
   getProjectFullPath,
   setupSymlink,
   setupProjectSymlinks,

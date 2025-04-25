@@ -33,10 +33,13 @@ async function createNewProject(projectType, projectName = '') {
     input: process.stdin,
     output: process.stdout
   });
+  
+  if (!projectName) {
+    console.log('');
+  }
 
   // Function to ask a question and get user input
   const question = (query) => new Promise((resolve) => rl.question(query, resolve));
-
   try {
     // Read project name
     let projectDir = '';
@@ -172,9 +175,13 @@ async function createProjectByType(projectName, projectType) {
   // Prepare other configurations
   prepareProjectOtherConfigs(settings);
 
-  // Initialize default source and build directories if not set
+  // Initialize essential default project parameters
   if (!settings.sourceDir) settings.func.setSourceDir('src');
   if (!settings.buildDir) settings.func.setBuildDir('dist');
+  if (settings.package.scripts.test === 'echo ToDo: test') settings.func.setJest();
+  if (settings.package.scripts.build === 'echo ToDo: build') settings.package.scripts.build = 'tsc';
+  if (settings.package.scripts.start === 'echo ToDo: start') settings.package.scripts.start = `node ./${settings.buildDir}/index.js`;
+  if (settings.package.scripts.dev === 'echo ToDo: dev') settings.package.scripts.dev = `tsc && node ./${settings.buildDir}/index.js`;
 
   // Update monorepo configurations
   updateMonorepoConfigs(settings);
@@ -567,12 +574,12 @@ function prepareProjectPackage(settings) {
 
   // Required scripts based on monorepo pattern
   const requiredScripts = {
-    clean: 'echo "ToDo: clean"',
-    lint: 'echo "ToDo: lint"',
-    test: 'jest --passWithNoTests',
-    build: 'echo "ToDo: build"',
-    start: 'echo "ToDo: start"',
-    dev: 'echo "ToDo: dev"'
+    clean: 'echo ToDo: clean',
+    lint: 'echo ToDo: lint',
+    test: 'echo ToDo: test',
+    build: 'echo ToDo: build',
+    start: 'echo ToDo: start',
+    dev: 'echo ToDo: dev'
   };
 
   // Add missing scripts

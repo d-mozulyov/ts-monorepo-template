@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { execSync } from 'child_process';
-import { colors, __rootdir, __shareddir, hasGit, hasSymlinkPermissions } from './project-utils.js';
+import { __rootdir, __shareddir, colors, hasSymlinkPermissions, hasGit, getProjectDir } from './project-utils.js';
 import { createNewProject, createNewSymlink } from './create-new-project.js';
 
 /**
@@ -20,16 +20,20 @@ import { createNewProject, createNewSymlink } from './create-new-project.js';
  */
 function parseArguments() {
   const args = process.argv.slice(2);
-  let operation = null;
-  let projectName = null;
-  let symlinkPath = null;
-  let symlinkSourcePath = null;
-  let gitOption = 'ask';
+  const result = {
+    operation: null,
+    projectName: null,
+    symlinkPath: null,
+    symlinkSourcePath: null,
+    gitOption: 'ask'
+  };
 
+  // If no arguments provided, return default result
   if (args.length === 0) {
-    return { operation, projectName, symlinkPath, symlinkSourcePath, gitOption };
+    return result;
   }
 
+  // Handle --remove operation
   if (args[0] === '--remove') {
     if (args.length < 2) {
       throw new Error('Project or module name is required for --remove');
@@ -37,11 +41,12 @@ function parseArguments() {
     if (args.includes('--git') || args.includes('--nogit')) {
       throw new Error('--git or --nogit cannot be used with --remove');
     }
-    operation = '--remove';
-    projectName = args[1];
-    return { operation, projectName, symlinkPath, symlinkSourcePath, gitOption };
+    result.operation = '--remove';
+    result.projectName = args[1];
+    return result;
   }
 
+  // Handle --symlink operation
   if (args[0] === '--symlink') {
     if (args.length < 4) {
       throw new Error('--symlink requires project name, symlink path, and symlink source');
@@ -49,26 +54,28 @@ function parseArguments() {
     if (args.includes('--git') || args.includes('--nogit')) {
       throw new Error('--git or --nogit cannot be used with --symlink');
     }
-    operation = '--symlink';
-    projectName = args[1];
-    symlinkPath = args[2];
-    symlinkSourcePath = args[3];
-    return { operation, projectName, symlinkPath, symlinkSourcePath, gitOption };
+    result.operation = '--symlink';
+    result.projectName = args[1];
+    result.symlinkPath = args[2];
+    result.symlinkSourcePath = args[3];
+    return result;
   }
 
-  operation = args[0];
-  projectName = args[1];
+  // Handle project creation with project type and optional project name
+  result.operation = args[0];
+  result.projectName = args[1] || null;
 
+  // Handle git options
   if (args.includes('--git')) {
     if (args.includes('--nogit')) {
       throw new Error('Cannot use both --git and --nogit');
     }
-    gitOption = 'use';
+    result.gitOption = 'use';
   } else if (args.includes('--nogit')) {
-    gitOption = 'skip';
+    result.gitOption = 'skip';
   }
 
-  return { operation, projectName, symlinkPath, symlinkSourcePath, gitOption };
+  return result;
 }
 
 /**
@@ -99,10 +106,7 @@ async function tryAddFilesToGit(files, gitOption) {
 
   if (shouldAddToGit) {
     for (const file of files) {
-      execSync(`git add "${file}"`, {
-        cwd: __rootdir,
-        stdio: 'ignore'
-      });
+      execSync(`git add "${file}"`, { cwd: __rootdir, stdio: 'ignore' });
     }
     console.log(colors.green('✅ Files successfully added to Git'));
   }
@@ -113,78 +117,70 @@ async function tryAddFilesToGit(files, gitOption) {
  * @param {string} title - Menu title/prompt
  * @param {string[]} options - Array of menu options
  * @returns {Promise<number>} Index of selected option
- * @throws {Error} If menu rendering fails
  */
 async function createInteractiveMenu(title, options) {
-  let selectedIndex = 0;
-  let cursorPosition = 0;
+  // Render the title and navigation hint
+  console.log('');
+  console.log(colors.bold(title));
+  console.log(colors.italic('Use ↑/↓ arrow keys to navigate and Enter to select'));
+  console.log('');
 
-  function renderMenu() {
-    // Clear previous menu if any
-    if (cursorPosition > 0) {
-      process.stdout.write(`\x1B[${cursorPosition}A`); // Move cursor up
-      process.stdout.write(`\x1B[J`); // Clear from cursor to end of screen
+  // Render menu options, with the first option highlighted
+  options.forEach((option, index) => {
+    if (index === 0) {
+      console.log(colors.blue(`> ${option}`));
+    } else {
+      console.log(`  ${option}`);
     }
+  });
 
-    // Render the title and navigation hint
-    console.log(colors.bold(title));
-    console.log(colors.italic('Use ↑/↓ arrow keys to navigate and Enter to select'));
-    console.log('');
+  // Renders a single menu option at the specified index
+  function renderMenuOption(option, index, isSelected) {
+    const upIndex = options.length - index;
+    process.stdout.write(`\x1B[${upIndex}A`); // Move to option's line
+    process.stdout.write(`\x1B[K`); // Clear the line
+    console.log(isSelected ? colors.blue(`> ${option}`) : `  ${option}`); // Text
+    process.stdout.write(`\x1B[${upIndex - 1}B`); // Move back
+  }
 
-    // Render menu options
-    options.forEach((option, index) => {
-      if (index === selectedIndex) {
-        console.log(colors.blue(`> ${option}`));
-      } else {
-        console.log(`  ${option}`);
-      }
-    });
-
-    // Update cursor position for next render
-    cursorPosition = options.length + 3; // title + hint + blank line + options
+  // Changes the selected menu index and updates the display
+  let selectedIndex = 0;
+  function changeSelectedIndex(currentIndex, newIndex) {
+    if (newIndex < 0 || newIndex >= options.length) {
+      return currentIndex;
+    }
+    renderMenuOption(options[currentIndex], currentIndex, false);
+    renderMenuOption(options[newIndex], newIndex, true);
+    return newIndex;
   }
 
   return new Promise((resolve) => {
     // Set up terminal to handle input without requiring Enter
     readline.emitKeypressEvents(process.stdin);
-    let isRawMode = false;
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(true);
-      isRawMode = true;
     }
     process.stdin.resume(); // Ensure stdin is active
 
-    try {
-      renderMenu();
-
-      // Handle keypress events
-      const onKeyPress = (str, key) => {
-        if (key.name === 'c' && key.ctrl) {
-          process.stdin.removeListener('keypress', onKeyPress);
-          if (isRawMode) {
-            process.stdin.setRawMode(false);
-          }
-          process.stdin.pause();
-          process.exit(0);
-        } else if (key.name === 'up' && selectedIndex > 0) {
-          selectedIndex--;
-          renderMenu();
-        } else if (key.name === 'down' && selectedIndex < options.length - 1) {
-          selectedIndex++;
-          renderMenu();
-        } else if (key.name === 'return') {
-          process.stdin.removeListener('keypress', onKeyPress); // Clean up listener
-          resolve(selectedIndex);
-        }
-      };
-
-      process.stdin.on('keypress', onKeyPress);
-    } finally {
-      if (isRawMode) {
+    // Handle keypress events
+    const onKeyPress = (str, key) => {
+      if (key.name === 'c' && key.ctrl) {
         process.stdin.setRawMode(false);
+        process.stdin.pause();
+        process.exit(0);
+      } else if (key.name === 'up') {
+        selectedIndex = changeSelectedIndex(selectedIndex, selectedIndex - 1);
+      } else if (key.name === 'down') {
+        selectedIndex = changeSelectedIndex(selectedIndex, selectedIndex + 1);
+      } else if (key.name === 'return') {
+        process.stdin.removeListener('keypress', onKeyPress); // Clean up listener
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        resolve(selectedIndex);
       }
-      process.stdin.pause();
-    }
+    };
+
+    process.stdin.on('keypress', onKeyPress);
   });
 }
 
@@ -422,13 +418,10 @@ async function safeRemove(targetPath) {
   let removedFromGit = false;
   if (hasGit()) {
     try {
-      execSync(`git rm -r --cached "${relPath}"`, {
-        cwd: __rootdir,
-        stdio: 'ignore'
-      });
+      execSync(`git rm -r --cached "${relPath}"`, { cwd: __rootdir, stdio: 'ignore' });
       removedFromGit = true;
     } catch (err) {
-      console.log(colors.yellow(`Warning: Git removal failed for "${relPath}", attempting direct removal: ${err.message}`));
+      console.log(colors.yellow(`Git removing "${relPath}" failed`));
     }
   }
 
@@ -515,6 +508,13 @@ async function removeProjectOrModule(name) {
 
     // Remove project directory
     await safeRemove(projectDir);
+
+    // Run npm prune to remove unused dependencies
+    try {
+      execSync('npm prune', { cwd: __rootdir, stdio: 'inherit' });
+    } catch (err) {
+      console.log(colors.yellow('npm prune failed, please run it manually'));
+    }
   } else {
     // Handle module removal
     console.log(colors.blue(`🗑️ Removing module: ${name}`));
@@ -612,7 +612,6 @@ async function selectOperation() {
   }
 
   // Add a blank line for visual separation before the second menu
-  console.log('');
   const projectIndex = await createInteractiveMenu(`Select ${selectedCategory.split(':')[0]} project:`, projectOptions);
   return projectOptions[projectIndex];
 }
