@@ -1,0 +1,13 @@
+{
+  "type": "Empty Node,js",
+  "builddir": "dist",
+  "production": {
+    "node_modules": false,
+    "paths": [
+      "dist"
+    ]
+  },
+  "symlinks": {
+    "src/@shared": "SHARED"
+  }
+}

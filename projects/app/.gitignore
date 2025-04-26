@@ -1,0 +1,5 @@
+# Ignore internal symlinks
+src/@shared
+
+# Ignore directories
+dist/

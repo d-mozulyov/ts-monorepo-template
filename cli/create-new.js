@@ -509,11 +509,11 @@ async function removeProjectOrModule(name) {
     // Remove project directory
     await safeRemove(projectDir);
 
-    // Run npm prune to remove unused dependencies
+    // Run npm uninstall to remove project dependencies
     try {
-      execSync('npm prune', { cwd: __rootdir, stdio: 'inherit' });
+      execSync(`npm uninstall ${packageName}`, { cwd: __rootdir, stdio: 'inherit' });
     } catch (err) {
-      console.log(colors.yellow('npm prune failed, please run it manually'));
+      console.log(colors.yellow(`npm uninstall ${packageName} failed, please run it manually`));
     }
   } else {
     // Handle module removal

@@ -175,21 +175,34 @@ async function createProjectByType(projectName, projectType) {
   // Prepare other configurations
   prepareProjectOtherConfigs(settings);
 
-  // Initialize essential default project parameters
-  if (!settings.sourceDir) settings.func.setSourceDir('src');
-  if (!settings.buildDir) settings.func.setBuildDir('dist');
-  if (settings.package.scripts.test === 'echo ToDo: test') settings.func.setJest();
-  if (settings.package.scripts.build === 'echo ToDo: build') settings.package.scripts.build = 'tsc';
-  if (settings.package.scripts.start === 'echo ToDo: start') settings.package.scripts.start = `node ./${settings.buildDir}/index.js`;
-  if (settings.package.scripts.dev === 'echo ToDo: dev') settings.package.scripts.dev = `tsc && node ./${settings.buildDir}/index.js`;
-
-  // Update monorepo configurations
-  updateMonorepoConfigs(settings);
-
   // Execute the callback returned from create function
   if (typeof callback === 'function') {
     callback();
   }
+
+  // Check for scripts that still use default values
+  const defaultScripts = settings.basic.defaultScripts;
+  const currentScripts = settings.package.scripts || {};
+  const unchangedScripts = Object.keys(currentScripts).filter(
+    (scriptName) => currentScripts[scriptName] === defaultScripts[scriptName]
+  );
+  if (unchangedScripts.length > 0) {
+    console.log(colors.yellow(
+      `Warning: The following scripts are not overridden and use default values: ${unchangedScripts.join(', ')}`
+    ));
+  }
+
+  // Validate sourceDir and buildDir
+  if (!settings.sourceDir && !settings.buildDir) {
+    throw new Error('Source and build directories are not defined');
+  } else if (!settings.sourceDir) {
+    throw new Error('Source directory is not defined');
+  } else if (!settings.buildDir) {
+    throw new Error('Build directory is not defined');
+  }
+
+  // Update monorepo configurations
+  updateMonorepoConfigs(settings);
 
   // Save all configuration files to disk
   settings.func.save();
@@ -572,15 +585,8 @@ function prepareProjectPackage(settings) {
     }
   }
 
-  // Required scripts based on monorepo pattern
-  const requiredScripts = {
-    clean: 'echo ToDo: clean',
-    lint: 'echo ToDo: lint',
-    test: 'echo ToDo: test',
-    build: 'echo ToDo: build',
-    start: 'echo ToDo: start',
-    dev: 'echo ToDo: dev'
-  };
+  // Initialize required scripts from settings.basic.defaultScripts
+  const requiredScripts = { ...settings.basic.defaultScripts };
 
   // Add missing scripts
   for (const [scriptName, existingCommand] of Object.entries(newPackage.scripts || {})) {
@@ -620,46 +626,30 @@ function prepareProjectVSCodeConfigs(settings) {
     ]
   };
 
-  // Define tasks.json
+  // Initialize tasks object based on settings.basic.defaultScripts
+  const tasks = {};
+  for (const name of Object.keys(settings.basic.defaultScripts)) {
+    tasks[name] = {
+      label: name.charAt(0).toUpperCase() + name.slice(1),
+      type: 'shell',
+      command: `npm run ${name}`
+    };
+  }
+  tasks.clean.group = 'none';
+  tasks.lint.group = 'test';
+  tasks.lint.problemMatcher = '$eslint-stylish';
+  tasks.test.group = 'test';
+  tasks.build.group = {
+    kind: 'build',
+    isDefault: true
+  };
+  tasks.build.problemMatcher = '$tsc';
+  tasks.start.group = 'none';
+
+  // Define tasksJson using the values of the tasks object
   const tasksJson = {
     "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Clean",
-        "type": "shell",
-        "command": "npm run clean",
-        "group": "none"
-      },
-      {
-        "label": "Lint",
-        "type": "shell",
-        "command": "npm run lint",
-        "group": "test",
-        "problemMatcher": "$eslint-stylish"
-      },
-      {
-        "label": "Test",
-        "type": "shell",
-        "command": "npm run test",
-        "group": "test"
-      },
-      {
-        "label": "Build",
-        "type": "shell",
-        "command": "npm run build",
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "problemMatcher": "$tsc"
-      },
-      {
-        "label": "Start",
-        "type": "shell",
-        "command": "npm run start",
-        "group": "none"
-      }
-    ]
+    "tasks": Object.values(tasks)
   };
 
   // Define settings.json

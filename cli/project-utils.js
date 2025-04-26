@@ -195,7 +195,8 @@ function createProjectSettings(projectName, projectType) {
       packageName,
       files: {},
       dependencies: new Set(),
-      devDependencies: new Set()
+      devDependencies: new Set(),
+      defaultScripts: {}
     },
     func: {
       /**
@@ -456,7 +457,7 @@ function createProjectSettings(projectName, projectType) {
         this.func.addSymlink(`${normalizedValue}/@shared`, 'SHARED');
 
         // Update lint script if it's the default ToDo
-        if (this.package && this.package.scripts && this.package.scripts.lint === 'echo ToDo: lint') {
+        if (this.package && this.package.scripts && this.package.scripts.lint === this.basic.defaultScripts.lint) {
           this.package.scripts.lint = `eslint ./${normalizedValue}`;
           this.func.addEslintDependencies();
         }
@@ -491,7 +492,7 @@ function createProjectSettings(projectName, projectType) {
         this.func.ignoreDir(normalizedValue);
 
         // Update clean script if it's the default ToDo and add rimraf
-        if (this.package && this.package.scripts && this.package.scripts.clean === 'echo ToDo: clean') {
+        if (this.package && this.package.scripts && this.package.scripts.clean === this.basic.defaultScripts.clean) {
           this.package.scripts.clean = `rimraf ./${normalizedValue}`;
           this.func.addDevDependencies('rimraf');
         }
@@ -512,7 +513,7 @@ function createProjectSettings(projectName, projectType) {
        */
       setJest: function() {
         // Update test script if it's the default ToDo
-        if (this.package && this.package.scripts && this.package.scripts.test === 'echo ToDo: test') {
+        if (this.package && this.package.scripts && this.package.scripts.test === this.basic.defaultScripts.test) {
           this.package.scripts.test = 'jest --passWithNoTests';
         }
 
@@ -618,6 +619,12 @@ function createProjectSettings(projectName, projectType) {
     },
     vscode: {}
   };
+
+  // Populate defaultScripts with default script commands
+  const defaultScriptNames = ['clean', 'lint', 'test', 'build', 'start', 'dev'];
+  for (const scriptName of defaultScriptNames) {
+    settings.basic.defaultScripts[scriptName] = `echo ToDo: ${scriptName}`;
+  }
 
   // Automatically bind all functions in all nested objects to the settings context
   Object.keys(settings).forEach(section => {
