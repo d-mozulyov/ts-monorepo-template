@@ -7,7 +7,204 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import readline from 'readline';
-import { colors, __rootdir, __shareddir, getProjectDir, getProjectFullPath, setupSymlink, setupProjectSymlinks, createProjectSettings } from './project-utils.js';
+import { __rootdir, __shareddir, colors, getProjectDir, getProjectFullPath, jsonStringify, setupSymlink, setupProjectSymlinks, createProjectSettings } from './project-utils.js';
+
+/**
+ * Helper class to provide additional functionalities to the settings object.
+ */
+class SettingsHelper {
+  /**
+   * Creates an instance of SettingsHelper.
+   * @param {Object} settings - The project settings object.
+   */
+  constructor(settings) {
+    this.settings = settings;
+    // Bind methods to ensure 'this' context is correct when called from settings
+    // Example: this.someMethod = this.someMethod.bind(this);
+    this.getUnimplementedProjectTypeError = this.getUnimplementedProjectTypeError.bind(this);
+    this.apply = this.apply.bind(this);
+  }
+
+  /**
+   * Generates an error message for unimplemented project types.
+   * @returns {string} - The formatted error message.
+   */
+  getUnimplementedProjectTypeError() {
+    const projectType = this.settings.basic.projectType;
+    const contributionLink = 'https://github.com/d-mozulyov/ts-monorepo?tab=readme-ov-file#contributing';
+    return `Project type "${projectType}" is not yet fully implemented. You can contribute to the project here: ${contributionLink}`;
+  }
+
+  /**
+   * Applies configuration settings from the provided object to the project settings.
+   * @param {Object} config - Configuration object to apply. Expected structure:
+   *   {
+   *     sourceDir?: string,
+   *     buildDir?: string,
+   *     ignore?: {
+   *       [sectionComment: string]: string | string[], // For gitignore entries
+   *       directory?: string | string[],             // For directories to ignore
+   *       directories?: string | string[]            // Alias for directory
+   *     },
+   *     symlinks?: { [symlinkPath: string]: string }, // Key: symlink path, Value: source path
+   *     dependencies?: string | string[],
+   *     devDependencies?: string | string[],
+   *     eslint?: boolean,
+   *     jest?: boolean | string | string[], // boolean enables default, string/array specifies libraries
+   *     production?: string | string[],     // Paths to include in production build
+   *     scripts?: { [scriptName: string]: string } // Key: script name, Value: script command
+   *   }
+   * @throws {Error} If config is not an object or if properties have incorrect types or values.
+   */
+  apply(config) {
+    if (typeof config !== 'object' || config === null) {
+      throw new Error('Configuration must be an object');
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      switch (key) {
+        case 'sourceDir':
+          if (typeof value !== 'string') {
+            throw new Error(`Property 'sourceDir' must be a string`);
+          }
+          this.settings.func.setSourceDir(value);
+          break;
+
+        case 'buildDir':
+          if (typeof value !== 'string') {
+            throw new Error(`Property 'buildDir' must be a string`);
+          }
+          this.settings.func.setBuildDir(value);
+          break;
+
+        case 'ignore':
+          if (typeof value !== 'object' || value === null) {
+            throw new Error(`Property 'ignore' must be an object`);
+          }
+          for (const [ignoreKey, ignoreValue] of Object.entries(value)) {
+            if (ignoreKey === 'directory' || ignoreKey === 'directories') {
+              this.settings.func.ignoreDir(ignoreValue);
+            } else {
+              if (typeof ignoreValue === 'string') {
+                this.settings.func.gitignore(ignoreKey, ignoreValue);
+              } else if (Array.isArray(ignoreValue)) {
+                ignoreValue.forEach(val => {
+                  if (typeof val !== 'string') {
+                    throw new Error(`Value in array for ignore property '${ignoreKey}' must be a string`);
+                  }
+                  this.settings.func.gitignore(ignoreKey, val);
+                });
+              } else {
+                throw new Error(`Value for ignore property '${ignoreKey}' must be a string or array of strings`);
+              }
+            }
+          }
+          break;
+
+        case 'dependencies':
+          if (typeof value === 'string' || Array.isArray(value)) {
+            this.settings.func.addDependencies(value);
+          } else {
+            throw new Error(`Property 'dependencies' must be a string or array of strings`);
+          }
+          break;
+
+        case 'devDependencies':
+          if (typeof value === 'string' || Array.isArray(value)) {
+            this.settings.func.addDevDependencies(value);
+          } else {
+            throw new Error(`Property 'devDependencies' must be a string or array of strings`);
+          }
+          break;
+
+        case 'eslint':
+          if (typeof value !== 'boolean') {
+            throw new Error(`Property 'eslint' must be a boolean`);
+          }
+          if (value) {
+            this.settings.package.scripts.lint = `eslint ./${this.settings.sourceDir}`;
+            this.settings.func.addEslintDependencies();
+          }
+          break;
+
+        case 'jest':
+          if (typeof value === 'boolean' || typeof value === 'string' || Array.isArray(value)) {
+            if (typeof value === 'boolean' && !value) {
+              // Do nothing if false
+            } else {
+              this.settings.package.scripts.test = 'jest --passWithNoTests';
+              const jestArg = typeof value === 'boolean' ? [] : value;
+              this.settings.func.addJestDependencies(jestArg);
+            }
+          } else {
+            throw new Error(`Property 'jest' must be a boolean, string, or array of strings`);
+          }
+          break;
+
+        case 'symlinks':
+          if (typeof value !== 'object' || value === null) {
+            throw new Error(`Property 'symlinks' must be an object`);
+          }
+          for (const [symlinkKey, symlinkValue] of Object.entries(value)) {
+            this.settings.func.addSymlink(symlinkKey, symlinkValue);
+          }
+          break;
+
+        case 'production':
+          // Handle 'production' property: value must be a string or array of strings
+          if (typeof value === 'string') {
+            // Add single string path to production paths
+            this.settings.setup.production.paths.push(value);
+          } else if (Array.isArray(value)) {
+            // Add each string path from the array
+            value.forEach(path => {
+              if (typeof path !== 'string') {
+                throw new Error(`Each item in the 'production' array must be a string`);
+              }
+              this.settings.setup.production.paths.push(path);
+            });
+          } else {
+            throw new Error(`Property 'production' must be a string or array of strings`);
+          }
+          break;
+
+        case 'scripts':
+          // Handle 'scripts' property: value must be an object where each value is a string
+          if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+            throw new Error(`Property 'scripts' must be an object`);
+          }
+          // Iterate through the scripts object and assign each script
+          for (const [scriptName, scriptCommand] of Object.entries(value)) {
+            if (typeof scriptCommand !== 'string') {
+              throw new Error(`Value for script '${scriptName}' must be a string`);
+            }
+            this.settings.package.scripts[scriptName] = scriptCommand;
+          }
+          break;
+
+        case 'compilerOptions':
+          // Handle 'compilerOptions' property: value must be an object where each value is a string
+          if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+            throw new Error(`Property 'compilerOptions' must be an object`);
+          }
+          // Iterate through the compilerOptions object and assign each option
+          for (const [name, optionValue] of Object.entries(value)) {
+            if (typeof optionValue !== 'string') {
+              throw new Error(`Value for compilerOption '${name}' must be a string`);
+            }
+            this.settings.tsconfig.compilerOptions[name] = optionValue;
+          }
+          break;
+
+        default:
+          throw new Error(`Unknown configuration property: ${key}`);
+      }
+    }
+
+    // Return this for chaining (duck-style)
+    return this;
+  }
+}
 
 /**
  * Creates a new project in the monorepo
@@ -33,7 +230,7 @@ async function createNewProject(projectType, projectName = '') {
     input: process.stdin,
     output: process.stdout
   });
-  
+
   if (!projectName) {
     console.log('');
   }
@@ -96,6 +293,9 @@ async function createNewProject(projectType, projectName = '') {
 async function createProjectByType(projectName, projectType) {
   // Create project settings object
   const settings = createProjectSettings(projectName, projectType);
+
+  // Initialize the helper within the settings object
+  settings.helper = new SettingsHelper(settings);
 
   let callback;
   switch (projectType) {
@@ -192,13 +392,16 @@ async function createProjectByType(projectName, projectType) {
     ));
   }
 
-  // Validate sourceDir and buildDir
-  if (!settings.sourceDir && !settings.buildDir) {
-    throw new Error('Source and build directories are not defined');
-  } else if (!settings.sourceDir) {
-    throw new Error('Source directory is not defined');
-  } else if (!settings.buildDir) {
-    throw new Error('Build directory is not defined');
+  // Validate sourceDir and buildDir to ensure they are defined
+  if (!settings.sourceDir || !settings.buildDir) {
+    settings.func.save(); // Save configuration files
+    if (!settings.sourceDir && !settings.buildDir) { // Both undefined
+      throw new Error('Source and build directories not defined');
+    } else if (!settings.sourceDir) { // Source undefined
+      throw new Error('Source directory not defined');
+    } else if (!settings.buildDir) { // Build undefined
+      throw new Error('Build directory not defined');
+    }
   }
 
   // Update monorepo configurations
@@ -223,7 +426,7 @@ function createEmptyNodeProject(settings) {
   // ToDo: Implement Empty Node.js project creation
 
   return function() {
-    console.log("ToDo: createEmptyNodeProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -240,7 +443,8 @@ function createReactProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createReactProject");
+    // ToDo: Add React-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -257,7 +461,65 @@ function createNextJsProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createNextJsProject");
+    // Apply Next.js settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: '.next',
+      eslint: true,
+      jest: 'react',
+      production: 'public',
+      scripts: {
+        "dev": "next dev --turbopack",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+      }
+    });
+
+    // Add jest.config.mjs
+    settings.func.addFile('jest-config', 'jest.config.mjs', [
+        '/**',
+        ' * Jest configuration for Next.js project.',
+        ' * This configuration sets up Jest to work with TypeScript and Next.js environment.',
+        ' * For more details, refer to: https://jestjs.io/docs/configuration',
+        ' */',
+        "import nextJest from 'next/jest.js';",
+        '',
+        '// Providing the path to your Next.js app which will enable loading next.config.js and .env files',
+        "const createJestConfig = nextJest({ dir: './' })",
+        '',
+        '// Any custom config you want to pass to Jest',
+        'const customJestConfig = {',
+        '    // Specifies the test environment to simulate a browser-like environment using jsdom',
+        "    testEnvironment: 'jsdom',",
+        '    // Defines module name mapper for aliasing imports (useful for Next.js paths)',
+        '    moduleNameMapper: {',
+        "        '^@/(.*)$': '<rootDir>/src/$1',",
+        '    },',
+        '    // Indicates which provider should be used to instrument code for coverage',
+        "    coverageProvider: 'v8',",
+        '    // Collects coverage from specific files',
+        "    collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts'],",
+        '}',
+        '',
+        '// createJestConfig is exported in this way to ensure that next/jest can load the Next.js configuration, which is async',
+        'export default createJestConfig(customJestConfig)'
+    ]);
+
+    // Add __tests__/app.test.tsx
+    settings.func.addFile('tests.app-test', '__tests__/app.test.tsx', [
+        "import { render, screen } from '@testing-library/react';",
+        "import '@testing-library/jest-dom';  // Import to extend Jest matchers",
+        "import Home from '../src/app/page';  // Adjust the path as necessary",
+        "",
+        "describe('Home Page', () => {",
+        "  it('renders the home page with expected text', () => {",
+        "    render(<Home />);",
+        "    const headingElement = screen.getByText(/Get started by editing/i);",
+        "    expect(headingElement).toBeInTheDocument();",
+        "  });",
+        "});"
+    ]);
   };
 }
 
@@ -275,7 +537,8 @@ function createAngularProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createAngularProject");
+    // ToDo: Add Angular-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -292,7 +555,8 @@ function createVueProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createVueProject");
+    // ToDo: Add Vue.js-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -309,7 +573,8 @@ function createSvelteProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createSvelteProject");
+    // ToDo: Add Svelte-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -322,7 +587,7 @@ function createExpressProject(settings) {
   // ToDo: Implement Express.js project creation
 
   return function() {
-    console.log("ToDo: createExpressProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -339,7 +604,8 @@ function createNestJsProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createNestJsProject");
+    // ToDo: Add NestJS-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -352,7 +618,7 @@ function createFastifyProject(settings) {
   // ToDo: Implement Fastify project creation
 
   return function() {
-    console.log("ToDo: createFastifyProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -364,7 +630,7 @@ function createFastifyProject(settings) {
 function createAdonisJsProject(settings) {
   // execSync(`npx create-adonis-ts-app ${settings.basic.projectDir} --api-only`, { stdio: 'inherit' });
   return function() {
-    console.log("ToDo: createAdonisJsProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -377,7 +643,7 @@ function createFeathersJsProject(settings) {
   // ToDo: Implement FeathersJS project creation
 
   return function() {
-    console.log("ToDo: createFeathersJsProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -394,7 +660,8 @@ function createReactNativeProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createReactNativeProject");
+    // ToDo: Add React Native-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -411,7 +678,8 @@ function createExpoProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createExpoProject");
+    // ToDo: Add Expo-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -424,7 +692,7 @@ function createNativeScriptProject(settings) {
   // ToDo: Implement NativeScript project creation
 
   return function() {
-    console.log("ToDo: createNativeScriptProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -441,7 +709,8 @@ function createIonicProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createIonicProject");
+    // ToDo: Add Ionic-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -454,7 +723,7 @@ function createCapacitorProject(settings) {
   // ToDo: Implement Capacitor project creation
 
   return function() {
-    console.log("ToDo: createCapacitorProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -471,7 +740,8 @@ function createElectronProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createElectronProject");
+    // ToDo: Add Electron-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -488,7 +758,8 @@ function createTauriProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createTauriProject");
+    // ToDo: Add Tauri-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -505,7 +776,8 @@ function createNeutralinoProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createNeutralinoProject");
+    // ToDo: Add Neutralino.js-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -522,7 +794,8 @@ function createProtonNativeProject(settings) {
   });
 
   return function() {
-    console.log("ToDo: createProtonNativeProject");
+    // ToDo: Add Proton Native-specific post-creation steps here if needed
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -535,7 +808,7 @@ function createSciterProject(settings) {
   // ToDo: Implement Sciter project creation
 
   return function() {
-    console.log("ToDo: createSciterProject");
+    throw new Error(settings.helper.getUnimplementedProjectTypeError());
   };
 }
 
@@ -606,25 +879,22 @@ function prepareProjectPackage(settings) {
  * @param {Object} settings - Project settings object
  */
 function prepareProjectVSCodeConfigs(settings) {
-  // Define launch.json
-  const launchJson = {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "type": "node",
-        "request": "launch",
-        "name": "Debug",
-        "runtimeExecutable": "npm",
-        "runtimeArgs": [
-          "run",
-          "dev"
-        ],
-        "cwd": "${workspaceFolder}",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      }
-    ]
+  // Define launch configuration with Debug configuration
+  const launch = {
+    "Debug": {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
   };
+  settings.vscode.add('launch', launch);
 
   // Initialize tasks object based on settings.basic.defaultScripts
   const tasks = {};
@@ -645,15 +915,11 @@ function prepareProjectVSCodeConfigs(settings) {
   };
   tasks.build.problemMatcher = '$tsc';
   tasks.start.group = 'none';
+  tasks.dev.group = 'none';
+  settings.vscode.add('tasks', tasks);
 
-  // Define tasksJson using the values of the tasks object
-  const tasksJson = {
-    "version": "2.0.0",
-    "tasks": Object.values(tasks)
-  };
-
-  // Define settings.json
-  const settingsJson = {
+  // Define VSCode settings
+  const vscodeSettings = {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit"
@@ -663,11 +929,7 @@ function prepareProjectVSCodeConfigs(settings) {
     ],
     "typescript.tsdk": "node_modules/typescript/lib"
   };
-
-  // Register all VSCode configuration files
-  settings.func.addFile('vscode.launch', '.vscode/launch.json', launchJson);
-  settings.func.addFile('vscode.tasks', '.vscode/tasks.json', tasksJson);
-  settings.func.addFile('vscode.settings', '.vscode/settings.json', settingsJson);
+  settings.vscode.add('settings', vscodeSettings);
 }
 
 /**
@@ -675,8 +937,16 @@ function prepareProjectVSCodeConfigs(settings) {
  * @param {Object} settings - Project settings object
  */
 function prepareProjectOtherConfigs(settings) {
-  // Load or create .gitignore
+  // Load and correct .gitignore file or create new
   const gitignore = settings.func.addFile('gitignore', '.gitignore', []);
+  for (let i = 0; i < gitignore.length; i++) {
+    gitignore[i] = gitignore[i].trim();
+    if (gitignore[i].startsWith('/')) {
+      gitignore[i] = gitignore[i].slice(1);
+    } else if (gitignore[i].startsWith('!/')) {
+      gitignore[i] = '!' + gitignore[i].slice(2);
+    }
+  }
 
   // Ignore node_modules
   settings.func.ignoreDir('node_modules');
@@ -732,9 +1002,12 @@ function prepareProjectOtherConfigs(settings) {
     ]
   };
 
-  // Load or create tsconfig.json
-  settings.func.addFile('tsconfig', 'tsconfig.json', defaultTSConfig);
-}
+   // Load or create tsconfig.json
+   const tsconfig = settings.func.addFile('tsconfig', 'tsconfig.json', defaultTSConfig);
+   if (!tsconfig.compilerOptions) {
+     tsconfig.compilerOptions = {};
+   }
+ }
 
 /**
  * Updates monorepo configurations to include the new project
@@ -762,16 +1035,14 @@ function updateMonorepoConfigs(settings) {
       rootPackage.scripts = {};
     }
 
-    // Based on the provided package.json structure
+    // Add all default scripts from settings.basic.defaultScripts
     const projectName = settings.basic.projectName;
     const packageName = settings.basic.packageName;
-    rootPackage.scripts[`clean:${projectName}`] = `npm run clean --workspace=${packageName}`;
-    rootPackage.scripts[`lint:${projectName}`] = `npm run lint --workspace=${packageName}`;
-    rootPackage.scripts[`test:${projectName}`] = `npm run test --workspace=${packageName}`;
-    rootPackage.scripts[`build:${projectName}`] = `npm run build --workspace=${packageName}`;
-    rootPackage.scripts[`start:${projectName}`] = `npm run start --workspace=${packageName}`;
+    for (const scriptName of Object.keys(settings.basic.defaultScripts)) {
+      rootPackage.scripts[`${scriptName}:${projectName}`] = `npm run ${scriptName} --workspace=${packageName}`;
+    }
 
-    fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
+    fs.writeFileSync(rootPackagePath, jsonStringify(rootPackage), 'utf8');
     console.log('Updated root package.json');
   }
 }

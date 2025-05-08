@@ -1,0 +1,677 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Create: Empty Node.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Empty Node.js",
+                "empty-node-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: React",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "React",
+                "react"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Next.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Next.js",
+                "next-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Angular",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Angular",
+                "angular"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Vue.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Vue.js",
+                "vue-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Svelte",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Svelte",
+                "svelte"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Express.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Express.js",
+                "express-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: NestJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "NestJS",
+                "nestjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Fastify",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Fastify",
+                "fastify"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: AdonisJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "AdonisJS",
+                "adonisjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: FeathersJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "FeathersJS",
+                "feathersjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: React Native",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "React Native",
+                "react-native"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Expo",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Expo",
+                "expo"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: NativeScript",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "NativeScript",
+                "nativescript"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Ionic",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Ionic",
+                "ionic"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Capacitor.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Capacitor.js",
+                "capacitor-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Electron",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Electron",
+                "electron"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Tauri",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Tauri",
+                "tauri"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Neutralino.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Neutralino.js",
+                "neutralino-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Proton Native",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Proton Native",
+                "proton-native"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Create: Sciter",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "Sciter",
+                "sciter"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Empty Node.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "empty-node-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: React",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "react"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Next.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "next-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Angular",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "angular"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Vue.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "vue-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Svelte",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "svelte"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Express.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli.create-new.js",
+                "--remove",
+                "express-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: NestJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "nestjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Fastify",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "fastify"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: AdonisJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "adonisjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: FeathersJS",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "feathersjs"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: React Native",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "react-native"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Expo",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "expo"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: NativeScript",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "nativescript"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Ionic",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "ionic"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Capacitor.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "capacitor-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Electron",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "electron"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Tauri",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "tauri"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Neutralino.js",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "neutralino-js"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Proton Native",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "proton-native"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remove: Sciter",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "./cli/create-new.js",
+                "--remove",
+                "sciter"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

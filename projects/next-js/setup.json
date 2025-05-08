@@ -1,0 +1,11 @@
+{
+  "type": "Next.js",
+  "builddir": ".next",
+  "production": {
+    "node_modules": false,
+    "paths": [".next", "public"]
+  },
+  "symlinks": {
+    "src/@shared": "SHARED"
+  }
+}

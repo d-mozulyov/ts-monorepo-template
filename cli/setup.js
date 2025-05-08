@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import { colors, __rootdir, hasSymlinkPermissions, getProjectDir, setupProjectSymlinks } from './project-utils.js';
+import { __rootdir, colors, hasSymlinkPermissions, getProjectDir, setupProjectSymlinks } from './project-utils.js';
 
 /**
  * Installs dependencies for the monorepo or a specific project.

@@ -1,0 +1,325 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Setup",
+            "program": "${workspaceFolder}/cli/setup.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create New Project",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Project Lock",
+            "program": "${workspaceFolder}/cli/create-project-lock.js",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Empty Node.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Empty Node.js",
+                "empty-node-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Empty Node.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create React",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "React",
+                "react",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: React"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Next.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Next.js",
+                "next-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Next.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Angular",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Angular",
+                "angular",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Angular"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Vue.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Vue.js",
+                "vue-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Vue.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Svelte",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Svelte",
+                "svelte",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Svelte"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Express.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Express.js",
+                "express-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Express.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create NestJS",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "NestJS",
+                "nestjs",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: NestJS"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Fastify",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Fastify",
+                "fastify",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Fastify"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create AdonisJS",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "AdonisJS",
+                "adonisjs",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: AdonisJS"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create FeathersJS",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "FeathersJS",
+                "feathersjs",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: FeathersJS"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create React Native",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "React Native",
+                "react-native",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: React Native"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Expo",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Expo",
+                "expo",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Expo"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create NativeScript",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "NativeScript",
+                "nativescript",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: NativeScript"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Ionic",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Ionic",
+                "ionic",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Ionic"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Capacitor.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Capacitor.js",
+                "capacitor-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Capacitor.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Electron",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Electron",
+                "electron",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Electron"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Tauri",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Tauri",
+                "tauri",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Tauri"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Neutralino.js",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Neutralino.js",
+                "neutralino-js",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Neutralino.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Proton Native",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Proton Native",
+                "proton-native",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Proton Native"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Create Sciter",
+            "program": "${workspaceFolder}/cli/create-new.js",
+            "args": [
+                "Sciter",
+                "sciter",
+                "--git"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "Remove: Sciter"
+        }
+    ]
+}

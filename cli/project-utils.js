@@ -9,6 +9,9 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import os from 'os';
 
+// Initialize __debug based on process.debugPort
+const __debug = typeof process.debugPort === 'number';
+
 // Global constants for directory paths
 const __filename = fileURLToPath(import.meta.url);
 const __clidir = path.dirname(__filename);
@@ -73,7 +76,7 @@ function hasGit() {
 function getProjectDir(projectName, isLocal = false) {
   // Normalize projectName separators to the current OS
   const normalizedProjectName = projectName.replace(/[\\/]/g, path.sep);
-  
+
   if (isLocal) {
     return path.join('projects', normalizedProjectName);
   }
@@ -116,6 +119,31 @@ function getProjectFullPath(projectName, value, allowShared = false) {
 
   // Default: join with project directory
   return path.join(getProjectDir(projectName), normalizedPath);
+}
+
+/**
+ * Converts a JavaScript value to a JSON string.
+ * @param {any} value - The value to convert.
+ * @param {boolean} [compact=false] - Whether to compact arrays without nested objects to a single line.
+ * @returns {string} The JSON string.
+ */
+function jsonStringify(value, compact = false) {
+  let jsonString = JSON.stringify(value, null, 2).replace(/\n/g, os.EOL);
+  if (compact) {
+    // Convert arrays without nested objects to a single-line format
+    jsonString = jsonString.replace(
+      /\[\s+([^\[\]\{\}]+?)\s+\]/g,
+      (match, inner) => {
+        const compactedArray = inner
+          .split(os.EOL)
+          .map(line => line.trim())
+          .filter(Boolean)
+          .join(' ');
+        return `[${compactedArray}]`;
+      }
+    );
+  }
+  return jsonString;
 }
 
 /**
@@ -185,6 +213,7 @@ function createProjectSettings(projectName, projectType) {
   const projectDir = getProjectDir(projectName);
   const projectParentDir = path.dirname(projectDir);
   const packageName = getProjectPackageName(projectName);
+  const vscodeDir = path.join(projectDir, '.vscode');
 
   const settings = {
     basic: {
@@ -193,6 +222,7 @@ function createProjectSettings(projectName, projectType) {
       projectName,
       projectType,
       packageName,
+      vscodeDir,
       files: {},
       dependencies: new Set(),
       devDependencies: new Set(),
@@ -264,7 +294,7 @@ function createProjectSettings(projectName, projectType) {
           if (Array.isArray(defValue)) {
             // Read file as array of strings for text files
             const content = fs.readFileSync(fullpath, 'utf8');
-            value = content.split('\n').filter(line => line.trim() !== '');
+            value = content.split(/\r?\n/);
           } else {
             // Read file as JSON object
             const content = fs.readFileSync(fullpath, 'utf8');
@@ -329,14 +359,35 @@ function createProjectSettings(projectName, projectType) {
 
       /**
        * Adds Jest-related devDependencies to the project settings
+       * @param {string|string[]} [libraries=[]] - Library or array of libraries to include with Jest
        */
-      addJestDependencies: function() {
-        this.func.addDevDependencies([
+      addJestDependencies: function(libraries = []) {
+        const jestDependencies = [
           'jest',
           'ts-jest',
           '@types/jest',
           '@jest/globals'
-        ]);
+        ];
+
+        const addLibrary = (name) => {
+          if (!name) return;
+          switch (name) {
+            case 'react':
+              jestDependencies.push('jest-environment-jsdom', '@testing-library/jest-dom', '@testing-library/react');
+              break;
+            default:
+              jestDependencies.push(name);
+              break;
+          }
+        };
+
+        if (typeof libraries === 'string') {
+          addLibrary(libraries);
+        } else if (Array.isArray(libraries)) {
+          libraries.forEach(addLibrary);
+        }
+
+        this.func.addDevDependencies(jestDependencies);
       },
 
       /**
@@ -356,8 +407,7 @@ function createProjectSettings(projectName, projectType) {
 
         // Check if path is already ignored
         if (this.gitignore.some(line => {
-          const trimmed = line.trim();
-          return trimmed === trimmedIgnorePath || trimmed === simplifiedIgnorePath;
+          return line === trimmedIgnorePath || line === simplifiedIgnorePath;
         })) {
           return;
         }
@@ -365,7 +415,7 @@ function createProjectSettings(projectName, projectType) {
         // Find insertion position
         let insertPosition = this.gitignore.length;
         const sectionHeader = `# ${sectionComment.trim()}`;
-        const sectionIndex = this.gitignore.findIndex(line => line.trim() === sectionHeader);
+        const sectionIndex = this.gitignore.findIndex(line => line === sectionHeader);
 
         if (sectionIndex !== -1) {
           // Section found, look for empty line after it
@@ -456,12 +506,6 @@ function createProjectSettings(projectName, projectType) {
         // Add symlink to shared directory
         this.func.addSymlink(`${normalizedValue}/@shared`, 'SHARED');
 
-        // Update lint script if it's the default ToDo
-        if (this.package && this.package.scripts && this.package.scripts.lint === this.basic.defaultScripts.lint) {
-          this.package.scripts.lint = `eslint ./${normalizedValue}`;
-          this.func.addEslintDependencies();
-        }
-
         // Update tsconfig if value is not 'src'
         if (normalizedValue !== 'src') {
           if (this.tsconfig.compilerOptions.rootDir === './src') {
@@ -499,26 +543,38 @@ function createProjectSettings(projectName, projectType) {
 
         // Update tsconfig if value is not 'dist'
         if (normalizedValue !== 'dist') {
-          if (this.tsconfig.compilerOptions.outDir === './dist') {
+          if (this.tsconfig.compilerOptions.outDir && this.tsconfig.compilerOptions.outDir === './dist') {
             this.tsconfig.compilerOptions.outDir = `./${normalizedValue}`;
           }
-          if (this.tsconfig.compilerOptions.tsBuildInfoFile.startsWith('./dist/')) {
-            this.tsconfig.compilerOptions.tsBuildInfoFile = `./${normalizedValue}/${this.tsconfig.compilerOptions.tsBuildInfoFile.slice(8)}`;
+          if (this.tsconfig.compilerOptions.tsBuildInfoFile && this.tsconfig.compilerOptions.tsBuildInfoFile.startsWith('./dist/')) {
+            this.tsconfig.compilerOptions.tsBuildInfoFile = `./${normalizedValue}/tsconfig.tsbuildinfo`;
           }
         }
       },
 
       /**
-       * Configures Jest testing for the project and updates related configurations
+       * Saves a file to the specified path.
+       * @param {string} fileName - The full path to the file.
+       * @param {any} value - The content to save.
        */
-      setJest: function() {
-        // Update test script if it's the default ToDo
-        if (this.package && this.package.scripts && this.package.scripts.test === this.basic.defaultScripts.test) {
-          this.package.scripts.test = 'jest --passWithNoTests';
+      saveFile: function(fileName, value) {
+        // Ensure the target directory exists
+        const dir = path.dirname(fileName);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
         }
 
-        // Add Jest dependencies
-        this.func.addJestDependencies();
+        // Save based on value type
+        if (Array.isArray(value)) {
+          // Save as text file with UTF-8 BOM
+          const bom = '\uFEFF';
+          const content = bom + value.join(os.EOL);
+          fs.writeFileSync(fileName, content, 'utf8');
+        } else {
+          // Save as JSON file
+          const content = jsonStringify(value, true);
+          fs.writeFileSync(fileName, content, 'utf8');
+        }
       },
 
       /**
@@ -539,24 +595,12 @@ function createProjectSettings(projectName, projectType) {
           }
           const value = current;
 
-          // Ensure the target directory exists
-          const dir = path.dirname(fullpath);
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-
           // Save based on value type
-          if (Array.isArray(value)) {
-            // Save as text file with UTF-8 BOM
-            const bom = '\uFEFF';
-            const content = bom + value.join('\n');
-            fs.writeFileSync(fullpath, content, 'utf8');
-          } else {
-            // Save as JSON file
-            const content = JSON.stringify(value, null, 2);
-            fs.writeFileSync(fullpath, content, 'utf8');
-          }
+          this.func.saveFile(fullpath, value);
         }
+
+        // Save VS Code configurations
+        this.vscode.save();
       },
 
       /**
@@ -611,13 +655,61 @@ function createProjectSettings(projectName, projectType) {
           }
 
           // Save the updated package.json
-          fs.writeFileSync(packagePath, JSON.stringify(packageObj, null, 2), 'utf8');
+          fs.writeFileSync(packagePath, jsonStringify(packageObj), 'utf8');
         } catch (error) {
           throw new Error(`Failed to update package.json: ${error.message}`);
         }
       }
     },
-    vscode: {}
+    vscode: {
+      /**
+       * Adds a VSCode configuration object
+       * @param {string} name - Configuration name (e.g., 'tasks', 'launch', 'settings')
+       * @param {Object} obj - Configuration object
+       */
+      add: function(name, obj) {
+        this.vscode[name] = obj;
+      },
+
+      /**
+       * Saves all VSCode configuration objects to their respective files
+       * Transforms objects based on their type (tasks, launch) before saving
+       */
+      save: function() {
+        // .vscode directory
+        if (!fs.existsSync(this.basic.vscodeDir)) {
+          fs.mkdirSync(this.basic.vscodeDir, { recursive: true });
+        }
+
+        for (const [name, obj] of Object.entries(this.vscode)) {
+          if (typeof obj !== 'object') continue;
+
+          // Transform configuration based on type using switch
+          let result;
+          switch (name) {
+            case 'tasks':
+              result = {
+                "version": "2.0.0",
+                "tasks": Object.values(obj)
+              };
+              break;
+            case 'launch':
+              result = {
+                "version": "0.2.0",
+                "configurations": Object.values(obj)
+              };
+              break;
+            default:
+              result = obj;
+              break;
+          }
+
+          // Save the configuration as JSON
+          const filePath = path.join(this.basic.vscodeDir, `${name}.json`);
+          this.func.saveFile(filePath, result);
+        }
+      }
+    }
   };
 
   // Populate defaultScripts with default script commands
@@ -641,6 +733,7 @@ function createProjectSettings(projectName, projectType) {
 }
 
 export {
+  __debug,
   __clidir,
   __rootdir,
   __shareddir,
@@ -650,6 +743,7 @@ export {
   getProjectDir,
   getProjectPackageName,
   getProjectFullPath,
+  jsonStringify,
   setupSymlink,
   setupProjectSymlinks,
   createProjectSettings

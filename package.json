@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "projects/app"
+    "projects/app",
+    "projects/next-js"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces",
@@ -15,8 +16,12 @@
     "lint:app": "npm run lint --workspace=@monorepo/app",
     "test:app": "npm run test --workspace=@monorepo/app",
     "build:app": "npm run build --workspace=@monorepo/app",
-    "start:app": "npm run start --workspace=@monorepo/app"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+    "start:app": "npm run start --workspace=@monorepo/app",
+    "clean:next-js": "npm run clean --workspace=@monorepo/next-js",
+    "lint:next-js": "npm run lint --workspace=@monorepo/next-js",
+    "test:next-js": "npm run test --workspace=@monorepo/next-js",
+    "build:next-js": "npm run build --workspace=@monorepo/next-js",
+    "start:next-js": "npm run start --workspace=@monorepo/next-js",
+    "dev:next-js": "npm run dev --workspace=@monorepo/next-js"
+  }
 }

@@ -6,7 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { colors, __rootdir, getProjectDir } from './project-utils.js';
+import { __rootdir, colors, getProjectDir, jsonStringify } from './project-utils.js';
 
 // Global variables
 let IsProduction = false;
@@ -20,10 +20,8 @@ let Packages = null;
  * @throws {Error} If file writing fails
  */
 function saveLockData(fileName) {
-  fs.writeFileSync(
-    path.join(__rootdir, fileName),
-    JSON.stringify(LockData, null, 2)
-  );
+  const filePath = path.join(__rootdir, fileName);
+  fs.writeFileSync(filePath, jsonStringify(LockData), 'utf8');
   console.log(`Successfully created ${fileName}`);
 }
 
@@ -322,7 +320,7 @@ function createPackageCopy(newPackagePath, sourcePackagePath, ownerPackagePath) 
   }
 
   // Create a deep copy of the source package
-  const newPkg = JSON.parse(JSON.stringify(sourcePkg));
+  const newPkg = structuredClone(sourcePkg);
   // Initialize owners with '<dummy>' to prevent accidental deletion
   newPkg.owners = ['<dummy>'];
 
@@ -566,10 +564,7 @@ function createProjectLockFile(projectInfoPath, projectLockPath) {
     }
   };
 
-  fs.writeFileSync(
-    projectLockPath,
-    JSON.stringify(projectLockData, null, 2)
-  );
+  fs.writeFileSync(projectLockPath, jsonStringify(projectLockData), 'utf8');
   console.log(`Successfully created ${projectLockPath}`);
 }
 

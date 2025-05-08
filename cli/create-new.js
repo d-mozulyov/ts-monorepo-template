@@ -10,8 +10,9 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { execSync } from 'child_process';
-import { __rootdir, __shareddir, colors, hasSymlinkPermissions, hasGit, getProjectDir } from './project-utils.js';
+import { __rootdir, __shareddir, colors, hasSymlinkPermissions, hasGit, getProjectDir, jsonStringify } from './project-utils.js';
 import { createNewProject, createNewSymlink } from './create-new-project.js';
+import os from 'os';
 
 /**
  * Parses command-line arguments and validates them
@@ -379,8 +380,8 @@ export const ${moduleCodeName}_example = () => {
     // Add the export if it doesn't already exist
     if (!indexContent.includes(exportStatement)) {
       const newContent = indexContent
-        ? indexContent.trim() + '\n' + exportStatement + '\n'
-        : exportStatement + '\n';
+        ? indexContent.trim() + os.EOL + exportStatement + os.EOL
+        : exportStatement + os.EOL;
 
       fs.writeFileSync(indexPath, newContent);
       console.log(`Updated index: ${indexPath} with export for ${importPath}`);
@@ -467,7 +468,8 @@ async function removeProjectOrModule(name) {
     // Find project directory
     const projectDir = getProjectDir(normalizedName);
     if (!fs.existsSync(projectDir)) {
-      throw new Error(`Project directory "${projectDir}" does not exist`);
+      console.warn(colors.yellow(`Warning: Project directory "${projectDir}" does not exist. Skipping removal.`));
+      return;
     }
 
     // Read package.json from project
@@ -503,7 +505,7 @@ async function removeProjectOrModule(name) {
     }
 
     // Save modified root package.json
-    fs.writeFileSync(rootPackagePath, JSON.stringify(rootPackage, null, 2));
+    fs.writeFileSync(rootPackagePath, jsonStringify(rootPackage), 'utf8');
     console.log(`Updated root package.json: removed scripts and workspace for ${packageName}`);
 
     // Remove project directory
@@ -522,7 +524,8 @@ async function removeProjectOrModule(name) {
     // Construct module path
     const modulePath = path.join(__shareddir, normalizedName);
     if (!fs.existsSync(modulePath)) {
-      throw new Error(`Module "${modulePath}" does not exist`);
+      console.warn(colors.yellow(`Warning: Module "${modulePath}" does not exist. Skipping removal.`));
+      return;
     }
 
     // Remove module file
@@ -538,7 +541,7 @@ async function removeProjectOrModule(name) {
 
         // Read and modify index file
         let indexContent = fs.readFileSync(indexPath, 'utf8');
-        const lines = indexContent.split('\n');
+        const lines = indexContent.split(/\r?\n/);
         const newLines = lines.filter((line) => line.trim() !== exportStatement.trim());
 
         if (newLines.length === 0 || newLines.every((line) => line.trim() === '')) {
@@ -555,7 +558,7 @@ async function removeProjectOrModule(name) {
           return true; // Index file or directory was removed, continue iteration
         } else {
           // Save modified index file
-          indexContent = newLines.join('\n');
+          indexContent = newLines.join(os.EOL);
           fs.writeFileSync(indexPath, indexContent);
           console.log(`Updated index: ${indexPath} with removed export for ${importPath}`);
         }
