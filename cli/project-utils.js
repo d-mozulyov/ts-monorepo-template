@@ -672,6 +672,36 @@ function createProjectSettings(projectName, projectType) {
       },
 
       /**
+       * Adds debug configuration based on provided constants
+       * @param {string|string[]} constants - Debug configuration constants to apply
+       * @throws {Error} If an unknown constant is provided
+       */
+      debug: function(constants) {
+        const addConstant = (constant) => {
+          if (!constant) return;
+
+          switch (constant) {
+            case 'with-chrome':
+              this.vscode.launch.Debug.serverReadyAction = {
+                "pattern": "Local:.+(https?://\\S+)",
+                "uriFormat": "%s",
+                "action": "debugWithChrome"
+              };
+              break;
+
+            default:
+              throw new Error(`Unknown debug constant: ${constant}`);
+          }
+        };
+
+        if (typeof constants === 'string') {
+          addConstant(constants);
+        } else if (Array.isArray(constants)) {
+          constants.forEach(addConstant);
+        }
+      },
+
+      /**
        * Saves all VSCode configuration objects to their respective files
        * Transforms objects based on their type (tasks, launch) before saving
        */

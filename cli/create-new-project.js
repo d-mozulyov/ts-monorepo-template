@@ -168,6 +168,15 @@ class SettingsHelper {
           }
           break;
 
+        case 'debug':
+          // Handle 'debug' property: value must be a string or array of strings
+          if (typeof value === 'string' || Array.isArray(value)) {
+            this.settings.vscode.debug(value);
+          } else {
+            throw new Error(`Property 'debug' must be a string or array of strings`);
+          }
+          break;
+
         case 'scripts':
           // Handle 'scripts' property: value must be an object where each value is a string
           if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -443,8 +452,66 @@ function createReactProject(settings) {
   });
 
   return function() {
-    // ToDo: Add React-specific post-creation steps here if needed
-    throw new Error(settings.helper.getUnimplementedProjectTypeError());
+    // Apply React settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: 'dist',
+      eslint: true,
+      jest: ['react', 'jsdom', 'vitest'],
+      production: 'public',
+      debug: 'with-chrome',
+      scripts: {
+        test: "vitest run",
+        start: settings.package.scripts.preview
+      }
+    });
+
+    // Add setupTests.ts file
+    settings.func.addFile('tests.setup', 'src/__tests__/setupTests.ts', [
+      "import '@testing-library/jest-dom';"
+    ]);
+
+    // Add App.test.tsx file
+    settings.func.addFile('tests.app-test', 'src/__tests__/App.test.tsx', [
+      "import { describe, it, expect } from 'vitest';",
+      "import { render, screen } from '@testing-library/react';",
+      "import App from '../App';",
+      "",
+      "describe('App', () => {",
+      "  it('renders the heading', () => {",
+      "    render(<App />);",
+      "    expect(screen.getByText('Vite + React')).toBeInTheDocument();",
+      "  });",
+      "});"
+    ]);
+
+    // Add vite.config.ts file
+    settings.func.addFile('vite-config', 'vite.config.ts', [
+      "import { defineConfig } from 'vite'",
+      "import react from '@vitejs/plugin-react-swc'",
+      "",
+      "// https://vite.dev/config/",
+      "export default defineConfig({",
+      "  plugins: [react()]",
+      "})"
+    ]);
+
+    // Add vitest.config.ts file
+    settings.func.addFile('vitest-config', 'vitest.config.ts', [
+      "import { defineConfig } from 'vitest/config'",
+      "import react from '@vitejs/plugin-react-swc'",
+      "",
+      "// https://vitest.dev/config/",
+      "export default defineConfig({",
+      "  plugins: [react()],",
+      "  test: {",
+      "    globals: true,",
+      "    environment: 'jsdom',",
+      "    setupFiles: ['./src/__tests__/setupTests.ts'],",
+      "    include: ['./src/**/__tests__/**/*.{test,spec}.{ts,tsx}'],",
+      "  },",
+      "})"
+    ]);
   };
 }
 
@@ -468,11 +535,12 @@ function createNextJsProject(settings) {
       eslint: true,
       jest: 'react',
       production: 'public',
+      debug: 'with-chrome',
       scripts: {
-        "dev": "next dev --turbopack",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint"
+        lint: "next lint",
+        build: "next build",
+        dev: "next dev --turbopack",
+        start: "next start"
       }
     });
 
@@ -838,6 +906,7 @@ function prepareProjectPackage(settings) {
   const newPackage = {
     "name": settings.basic.packageName,
     "version": "1.0.0",
+    "type": "module",
     "private": true,
     "scripts": {},
     "dependencies": {},
@@ -881,15 +950,12 @@ function prepareProjectPackage(settings) {
 function prepareProjectVSCodeConfigs(settings) {
   // Define launch configuration with Debug configuration
   const launch = {
-    "Debug": {
+    Debug: {
       "type": "node",
       "request": "launch",
       "name": "Debug",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
+      "runtimeArgs": ["run", "dev"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"
     }
