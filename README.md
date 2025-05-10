@@ -132,6 +132,8 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 
 ![Project Creation Menu](./cli/create-new-menu.png)
 
+<img align="center" src="./cli/create-new-menu.png" width="800" alt="Project Creation Menu">
+
 Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
 
 ## Contributing
