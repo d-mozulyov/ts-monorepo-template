@@ -2,7 +2,7 @@
 
 [<img align="left" src="https://github.com/user-attachments/assets/d8fdc0f6-950d-4e3e-a847-a001dfe056f5">](https://t.me/ts_monorepo)
 
-A **monorepo** (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository. This approach brings multiple projects together under one roof, offering key benefits. It enables streamlined code sharing between projects with direct access to shared modules, simplifies dependency management through centralized versioning, and allows atomic changes across projects for coordinated updates. Monorepos also provide unified tooling and configuration for consistent standards, ultimately enhancing the developer experience with greater visibility across the ecosystem.
+A **monorepo** (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository. This approach brings multiple projects together under one roof, offering key benefits. It enables streamlined code sharing between projects with direct access to shared modules, simplifies dependency management through centralized versioning, and allows atomic changes across projects for coordinated updates. Monorepos also provide unified tooling and configuration for consistent standards across the ecosystem.
 
 This approach is especially valuable for individual developers managing multiple interconnected projects, small teams seeking to reduce overhead, and early-stage projects that need flexibility to evolve rapidly.
 
