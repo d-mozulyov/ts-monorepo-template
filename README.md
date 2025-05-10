@@ -1,11 +1,11 @@
 # TypeScript Monorepo Framework
 
-![Image](https://github.com/user-attachments/assets/daa1ccb7-be5b-4363-a537-8eb0fcb8427c)
+<img align="left" src="https://github.com/user-attachments/assets/daa1ccb7-be5b-4363-a537-8eb0fcb8427c"> 
 A comprehensive template for managing multiple TypeScript projects within a single repository.
 
 ## What is a Monorepo?
 
-![Image](https://github.com/user-attachments/assets/daa1ccb7-be5b-4363-a537-8eb0fcb8427c)A monorepo (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository, enabling easy code sharing, simplified dependency management, atomic changes across projects, coordinated versioning, unified CI/CD pipelines, and improved developer experience with better visibility into the entire ecosystem — all while maintaining centralized configuration, shared tooling, and consistent standards.
+![Image](https://github.com/user-attachments/assets/d8fdc0f6-950d-4e3e-a847-a001dfe056f5)A monorepo (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository, enabling easy code sharing, simplified dependency management, atomic changes across projects, coordinated versioning, unified CI/CD pipelines, and improved developer experience with better visibility into the entire ecosystem — all while maintaining centralized configuration, shared tooling, and consistent standards.
 
 ## Common Challenges with TypeScript Monorepos
 
