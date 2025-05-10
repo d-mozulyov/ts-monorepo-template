@@ -13,6 +13,7 @@ TypeScript monorepos face significant setup challenges: cross-project type shari
 
 ## Why This Monorepo Template?
 
+[<img align="left" src="https://github.com/user-attachments/assets/d8fdc0f6-950d-4e3e-a847-a001dfe056f5">](https://t.me/ts_monorepo)
 This TypeScript monorepo template provides an opinionated yet flexible foundation with several key advantages:
 
 - **Lightweight & Minimal Dependencies** - Built with simplicity in mind using native workspaces without heavy external orchestration tools, resulting in faster installations and reduced dependency maintenance
