@@ -6,7 +6,7 @@ A **monorepo** (monolithic repository) is a software development strategy where 
 
 This approach is especially valuable for individual developers managing multiple interconnected projects, small teams seeking to reduce overhead, and early-stage projects that need flexibility to evolve rapidly.
 
-TypeScript monorepos typically face challenges like cross-project type sharing, proper references configuration, efficient build systems, and consistent path aliases. This framework provides a lightweight solution that minimizes dependencies while delivering robust development tooling.
+TypeScript monorepos typically face challenges like cross-project type sharing, proper references configuration, efficient build systems, and consistent path aliases. This template provides a lightweight solution that minimizes dependencies while delivering robust development tooling.
 
 ## Why This Monorepo Template?
 
