@@ -1,0 +1,15 @@
+# Ignore directories
+node_modules/
+dist/
+coverage/
+
+# Ignore configuration files
+*.config.js
+*.config.ts
+
+# Ignore build files
+*.min.js
+*.bundle.js
+
+# Ignore environment files
+.env*
