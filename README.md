@@ -1,4 +1,4 @@
-# TypeScript Monorepo Framework
+# Lightweight TypeScript Monorepo
 
 [<img align="left" src="https://github.com/user-attachments/assets/d8fdc0f6-950d-4e3e-a847-a001dfe056f5">](https://t.me/ts_monorepo)
 
