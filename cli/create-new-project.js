@@ -466,25 +466,6 @@ function createReactProject(settings) {
       }
     });
 
-    // Add setupTests.ts file
-    settings.func.addFile('tests.setup', 'src/__tests__/setupTests.ts', [
-      "import '@testing-library/jest-dom';"
-    ]);
-
-    // Add App.test.tsx file
-    settings.func.addFile('tests.app-test', 'src/__tests__/App.test.tsx', [
-      "import { describe, it, expect } from 'vitest';",
-      "import { render, screen } from '@testing-library/react';",
-      "import App from '../App';",
-      "",
-      "describe('App', () => {",
-      "  it('renders the heading', () => {",
-      "    render(<App />);",
-      "    expect(screen.getByText('Vite + React')).toBeInTheDocument();",
-      "  });",
-      "});"
-    ]);
-
     // Add vite.config.ts file
     settings.func.addFile('vite-config', 'vite.config.ts', [
       "import { defineConfig } from 'vite'",
@@ -511,6 +492,25 @@ function createReactProject(settings) {
       "    include: ['./src/**/__tests__/**/*.{test,spec}.{ts,tsx}'],",
       "  },",
       "})"
+    ]);
+
+    // Add setupTests.ts file
+    settings.func.addFile('tests.setup', 'src/__tests__/setupTests.ts', [
+      "import '@testing-library/jest-dom';"
+    ]);
+
+    // Add App.test.tsx file
+    settings.func.addFile('tests.app-test', 'src/__tests__/App.test.tsx', [
+      "import { describe, it, expect } from 'vitest';",
+      "import { render, screen } from '@testing-library/react';",
+      "import App from '../App';",
+      "",
+      "describe('App', () => {",
+      "  it('renders the heading', () => {",
+      "    render(<App />);",
+      "    expect(screen.getByText('Vite + React')).toBeInTheDocument();",
+      "  });",
+      "});"
     ]);
   };
 }
@@ -623,8 +623,112 @@ function createVueProject(settings) {
   });
 
   return function() {
-    // ToDo: Add Vue.js-specific post-creation steps here if needed
-    throw new Error(settings.helper.getUnimplementedProjectTypeError());
+    // Apply Vue.js settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: 'dist',
+      eslint: true,
+      jest: ['eslint-plugin-vue', '@vue/test-utils', 'typescript-eslint', 'jsdom', 'vitest'],
+      production: 'public',
+      debug: 'with-chrome',
+      scripts: {
+        lint: "eslint .",
+        test: "vitest run",
+        start: settings.package.scripts.preview
+      }
+    });
+
+    // Add eslint.config.js file
+    settings.func.addFile('eslint-config', 'eslint.config.js', [
+      "import js from '@eslint/js';",
+      "import eslintPluginVue from 'eslint-plugin-vue';",
+      "import tseslint from 'typescript-eslint';",
+      "import vueParser from 'vue-eslint-parser';",
+      "",
+      "export default [",
+      "  js.configs.recommended,",
+      "  ...tseslint.configs.recommended,",
+      "  {",
+      "    files: ['**/*.ts'],",
+      "    plugins: {",
+      "      '@typescript-eslint': tseslint.plugin",
+      "    },",
+      "    languageOptions: {",
+      "      parser: tseslint.parser",
+      "    }",
+      "  },",
+      "  {",
+      "    files: ['**/*.vue'],",
+      "    plugins: {",
+      "      vue: eslintPluginVue",
+      "    },",
+      "    languageOptions: {",
+      "      parser: vueParser,",
+      "      parserOptions: {",
+      "        parser: tseslint.parser,",
+      "        extraFileExtensions: ['.vue']",
+      "      }",
+      "    }",
+      "  },",
+      "  {",
+      "    ignores: ['node_modules/**', 'dist/**']",
+      "  }",
+      "];"
+    ]);
+
+    // Add vite.config.ts file
+    settings.func.addFile('vite-config', 'vite.config.ts', [
+      "import { defineConfig } from 'vite'",
+      "import vue from '@vitejs/plugin-vue'",
+      "",
+      "// https://vite.dev/config/",
+      "export default defineConfig({",
+      "  plugins: [vue()],",
+      "})"
+    ]);
+
+    // Add vitest.config.ts file
+    settings.func.addFile('vitest-config', 'vitest.config.ts', [
+      "import { defineConfig } from 'vitest/config';",
+      "import vue from '@vitejs/plugin-vue';",
+      "import { fileURLToPath } from 'url';",
+      "",
+      "export default defineConfig({",
+      "  plugins: [vue()],",
+      "  test: {",
+      "    // Test environment configuration",
+      "    environment: 'jsdom',",
+      "    // Enable Vue components support",
+      "    globals: true,",
+      "    // Test file extensions configuration",
+      "    include: ['**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}'],",
+      "  },",
+      "  resolve: {",
+      "    alias: {",
+      "      '@': fileURLToPath(new URL('./src', import.meta.url)),",
+      "    },",
+      "  },",
+      "});"
+    ]);
+
+    // Add HelloWorld.spec.ts file
+    settings.func.addFile('tests.HelloWorld-spec', '__tests__/HelloWorld.spec.ts', [
+      "import { describe, it, expect } from 'vitest';",
+      "import { mount } from '@vue/test-utils';",
+      "import HelloWorld from '../src/components/HelloWorld.vue';",
+      "",
+      "describe('HelloWorld Component', () => {",
+      "  it('renders message correctly', () => {",
+      "    const message = 'Hello Vitest';",
+      "    const wrapper = mount(HelloWorld, {",
+      "      props: {",
+      "        msg: message,",
+      "      },",
+      "    });",
+      "    expect(wrapper.find('h1').text()).toBe(message);",
+      "  });",
+      "});"
+    ]);
   };
 }
 

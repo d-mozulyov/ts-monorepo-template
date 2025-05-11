@@ -1,14 +1,12 @@
-# TypeScript Monorepo Template
+# Lightweight TypeScript Monorepo
 
-A comprehensive template for managing multiple TypeScript projects within a single repository.
+[<img align="left" src="https://github.com/user-attachments/assets/d8fdc0f6-950d-4e3e-a847-a001dfe056f5">](https://t.me/ts_monorepo)
 
-## What is a Monorepo?
+A **monorepo** (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository. This approach brings multiple projects together under one roof, offering key benefits. It enables streamlined code sharing between projects with direct access to shared modules, simplifies dependency management through centralized versioning, and allows atomic changes across projects for coordinated updates. Monorepos also provide unified tooling and configuration for consistent standards across the ecosystem.
 
-A monorepo (monolithic repository) is a software development strategy where code for multiple projects is stored in the same repository, enabling easy code sharing, simplified dependency management, atomic changes across projects, coordinated versioning, unified CI/CD pipelines, and improved developer experience with better visibility into the entire ecosystem — all while maintaining centralized configuration, shared tooling, and consistent standards.
+This approach is especially valuable for individual developers managing multiple interconnected projects, small teams seeking to reduce overhead, and early-stage projects that need flexibility to evolve rapidly.
 
-## Common Challenges with TypeScript Monorepos
-
-TypeScript monorepos face significant setup challenges: cross-project type sharing, project references configuration, efficient incremental builds, consistent path aliases, proper build order orchestration, and maintaining IDE intellisense across workspace boundaries while keeping build performance acceptable as the codebase grows.
+TypeScript monorepos typically face challenges like cross-project type sharing, proper references configuration, efficient build systems, and consistent path aliases. This template provides a lightweight solution that minimizes dependencies while delivering robust development tooling.
 
 ## Why This Monorepo Template?
 
@@ -129,7 +127,7 @@ The monorepo architecture doesn't limit what frameworks you can add, but with th
 - Mobile: React Native, Expo, NativeScript, Ionic, Capacitor.js
 - Desktop: Electron, Tauri, Neutralino.js, Proton Native, Sciter
 
-![Project Creation Menu](./cli/create-new-menu.png)
+<img src="./cli/create-new-menu.png" width="640" alt="Project Creation Menu">
 
 Run it on Windows with `create-new.cmd` or on Linux/macOS with `sh ./create-new.cmd`. Each framework comes with properly configured TypeScript, build scripts, and shared module integration. **Note**: On Windows, this script requires administrator privileges to create symbolic links and will prompt for permissions when started - if denied, the script will fail with an error.
 

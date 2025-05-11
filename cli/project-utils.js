@@ -295,6 +295,12 @@ function createProjectSettings(projectName, projectType) {
             // Read file as array of strings for text files
             const content = fs.readFileSync(fullpath, 'utf8');
             value = content.split(/\r?\n/);
+            // Trim trailing whitespace from each line
+            value = value.map(line => line.trimEnd());
+            // Remove empty lines from the end of the array
+            while (value.length > 0 && value[value.length - 1].trim() === '') {
+              value.pop();
+            }
           } else {
             // Read file as JSON object
             const content = fs.readFileSync(fullpath, 'utf8');
@@ -698,6 +704,36 @@ function createProjectSettings(projectName, projectType) {
           addConstant(constants);
         } else if (Array.isArray(constants)) {
           constants.forEach(addConstant);
+        }
+      },
+
+      /**
+       * Duplicates a VSCode launch or task configuration.
+       * @param {string} name - The name of the configuration to duplicate.
+       * @param {string} newName - The new name for the duplicated configuration.
+       * @returns {Object} The duplicated configuration object.
+       * @throws {Error} If the configuration with the given name is not found.
+       */
+      duplicate: function(name, newName) {
+        const capitalizedNewName = newName.charAt(0).toUpperCase() + newName.slice(1);
+
+        if (this.vscode.launch[name]) {
+          // Found in launch configurations
+          const originalConfig = this.vscode.launch[name];
+          const newConfig = structuredClone(originalConfig);
+          newConfig.name = capitalizedNewName;
+          this.vscode.launch[capitalizedNewName] = newConfig;
+          return newConfig;
+        } else if (this.vscode.tasks[name]) {
+          // Found in task configurations
+          const originalConfig = this.vscode.tasks[name];
+          const newConfig = structuredClone(originalConfig);
+          newConfig.label = capitalizedNewName;
+          this.vscode.tasks[capitalizedNewName] = newConfig;
+          return newConfig;
+        } else {
+          // Configuration not found
+          throw new Error(`Configuration '${name}' not found.`);
         }
       },
 
