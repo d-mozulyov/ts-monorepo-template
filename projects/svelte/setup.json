@@ -1,0 +1,11 @@
+{
+  "type": "Svelte",
+  "builddir": "dist",
+  "production": {
+    "node_modules": false,
+    "paths": ["dist", "public"]
+  },
+  "symlinks": {
+    "src/@shared": "SHARED"
+  }
+}

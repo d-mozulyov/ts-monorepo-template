@@ -461,6 +461,7 @@ function createReactProject(settings) {
       production: 'public',
       debug: 'with-chrome',
       scripts: {
+        lint: "eslint .",
         test: "vitest run",
         start: settings.package.scripts.preview
       }
@@ -488,22 +489,22 @@ function createReactProject(settings) {
       "  test: {",
       "    globals: true,",
       "    environment: 'jsdom',",
-      "    setupFiles: ['./src/__tests__/setupTests.ts'],",
-      "    include: ['./src/**/__tests__/**/*.{test,spec}.{ts,tsx}'],",
+      "    setupFiles: ['./__tests__/setupTests.ts'],",
+      "    include: ['./__tests__/**/*.{test,spec}.{ts,tsx}'],",
       "  },",
       "})"
     ]);
 
     // Add setupTests.ts file
-    settings.func.addFile('tests.setup', 'src/__tests__/setupTests.ts', [
+    settings.func.addFile('tests.setup', '__tests__/setupTests.ts', [
       "import '@testing-library/jest-dom';"
     ]);
 
     // Add App.test.tsx file
-    settings.func.addFile('tests.app-test', 'src/__tests__/App.test.tsx', [
+    settings.func.addFile('tests.app-test', '__tests__/App.test.tsx', [
       "import { describe, it, expect } from 'vitest';",
       "import { render, screen } from '@testing-library/react';",
-      "import App from '../App';",
+      "import App from '../src/App';",
       "",
       "describe('App', () => {",
       "  it('renders the heading', () => {",
@@ -574,8 +575,8 @@ function createNextJsProject(settings) {
         'export default createJestConfig(customJestConfig)'
     ]);
 
-    // Add __tests__/app.test.tsx
-    settings.func.addFile('tests.app-test', '__tests__/app.test.tsx', [
+    // Add __tests__/App.test.tsx
+    settings.func.addFile('tests.app-test', '__tests__/App.test.tsx', [
         "import { render, screen } from '@testing-library/react';",
         "import '@testing-library/jest-dom';  // Import to extend Jest matchers",
         "import Home from '../src/app/page';  // Adjust the path as necessary",
@@ -711,8 +712,8 @@ function createVueProject(settings) {
       "});"
     ]);
 
-    // Add HelloWorld.spec.ts file
-    settings.func.addFile('tests.HelloWorld-spec', '__tests__/HelloWorld.spec.ts', [
+    // Add App.spec.ts file
+    settings.func.addFile('tests.app-spec', '__tests__/App.spec.ts', [
       "import { describe, it, expect } from 'vitest';",
       "import { mount } from '@vue/test-utils';",
       "import HelloWorld from '../src/components/HelloWorld.vue';",
@@ -745,8 +746,130 @@ function createSvelteProject(settings) {
   });
 
   return function() {
-    // ToDo: Add Svelte-specific post-creation steps here if needed
-    throw new Error(settings.helper.getUnimplementedProjectTypeError());
+    // Apply Svelte settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: 'dist',
+      eslint: true,
+      jest: ['svelte-eslint-parser', 'jsdom', 'vitest'],
+      production: 'public',
+      debug: 'with-chrome',
+      scripts: {
+        lint: "eslint .",
+        test: "vitest run",
+        start: settings.package.scripts.preview
+      }
+    });
+
+    // Add eslint.config.js file
+    settings.func.addFile('eslint-config', 'eslint.config.js', [
+      "import js from '@eslint/js';",
+      "import globals from 'globals';",
+      "import typescriptParser from '@typescript-eslint/parser';",
+      "import svelteParser from 'svelte-eslint-parser';",
+      "",
+      "export default [",
+      "    {",
+      "        ignores: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*']",
+      "    },",
+      "    js.configs.recommended,",
+      "    {",
+      "        files: ['src/**/*.{js,ts}', '__tests__/**/*.{js,ts}'],",
+      "        ignores: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*'],",
+      "        languageOptions: {",
+      "            ecmaVersion: 2023,",
+      "            sourceType: 'module',",
+      "            parser: typescriptParser,",
+      "            globals: {",
+      "                ...globals.browser,",
+      "                ...globals.es2021,",
+      "                ...globals.node,",
+      "                ...globals.vitest",
+      "            }",
+      "        },",
+      "        rules: {",
+      "            'no-unused-vars': ['error', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }],",
+      "            'no-console': 'warn'",
+      "        }",
+      "    },",
+      "    {",
+      "        files: ['**/*.svelte'],",
+      "        languageOptions: {",
+      "            parser: svelteParser,",
+      "            parserOptions: {",
+      "                parser: typescriptParser",
+      "            }",
+      "        }",
+      "    }",
+      "];"
+    ]);
+
+    // Add vite.config.ts file
+    settings.func.addFile('vite-config', 'vite.config.ts', [
+      "import { defineConfig } from 'vite'",
+      "import { svelte } from '@sveltejs/vite-plugin-svelte'",
+      "",
+      "// https://vite.dev/config/",
+      "export default defineConfig({",
+      "  plugins: [svelte()],",
+      "})"
+    ]);
+
+    // Add vitest.config.ts file
+    settings.func.addFile('vitest-config', 'vitest.config.ts', [
+      "import { defineConfig } from 'vite'",
+      "import { svelte } from '@sveltejs/vite-plugin-svelte'",
+      "",
+      "export default defineConfig({",
+      "  // Нужен только для vitest",
+      "  define: {",
+      "    'import.meta.vitest': false,",
+      "  },  plugins: [",
+      "    svelte({",
+      "      compilerOptions: {",
+      "        compatibility: {",
+      "          componentApi: 4",
+      "        }",
+      "      }",
+      "    })",
+      "  ],test: {",
+      "    globals: true,",
+      "    environment: 'jsdom',",
+      "    include: ['__tests__/**/*.{test,spec}.{js,ts}'],",
+      "    coverage: {",
+      "      provider: 'v8',",
+      "      reporter: ['text', 'json', 'html']",
+      "    },",
+      "    deps: {",
+      "      optimizer: {",
+      "        web: {",
+      "          include: ['svelte']",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      "})"
+    ]);
+
+    // Add App.test.ts file
+    settings.func.addFile('tests.app-spec', '__tests__/App.test.ts', [
+      "import { describe, it, expect } from 'vitest';",
+      "import App from '../src/App.svelte';",
+      "",
+      "describe('App.svelte', () => {",
+      "    it('has correct page title', () => {",
+      "        const target = document.createElement('div');",
+      "        document.body.appendChild(target);",
+      "",
+      "        new App({ target });",
+      "",
+      "        const heading = document.querySelector('h1');",
+      "        expect(heading?.textContent).toBe('Vite + Svelte');",
+      "",
+      "        document.body.removeChild(target);",
+      "    });",
+      "});"
+    ]);
   };
 }
 
