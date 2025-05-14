@@ -304,7 +304,10 @@ function createProjectSettings(projectName, projectType) {
           } else {
             // Read file as JSON object
             const content = fs.readFileSync(fullpath, 'utf8');
-            value = JSON.parse(content);
+            const jsonStart = content.indexOf('{');
+            const jsonEnd = content.lastIndexOf('}') + 1;
+            const jsonPart = content.substring(jsonStart, jsonEnd);
+            value = JSON.parse(jsonPart);
           }
         }
 

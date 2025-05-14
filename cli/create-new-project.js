@@ -606,8 +606,188 @@ function createAngularProject(settings) {
   });
 
   return function() {
-    // ToDo: Add Angular-specific post-creation steps here if needed
-    throw new Error(settings.helper.getUnimplementedProjectTypeError());
+    // Apply Angular settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: 'dist',
+      eslint: true,
+      jest: [''],
+      production: 'public',
+      debug: 'with-chrome',
+      scripts: {
+        lint: "eslint .",
+        test: "ng test",
+        build: "ng build --configuration production",
+        start: "ng serve --no-hmr",
+        dev: "ng serve"
+      }
+    });
+
+    // Add eslint.config.js file
+    settings.func.addFile('eslint-config', 'eslint.config.js', [
+      "import eslint from '@eslint/js';",
+      "import tseslint from '@typescript-eslint/eslint-plugin';",
+      "import tseslintParser from '@typescript-eslint/parser';",
+      "",
+      "export default [  {",
+      "    // Global configuration",
+      "    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'],",
+      "  },",
+      "  {",
+      "    // TypeScript files configuration",
+      "    files: ['**/*.ts'],",
+      "    languageOptions: {",
+      "      parser: tseslintParser,",
+      "      parserOptions: {",
+      "        project: './tsconfig.json',",
+      "      },",
+      "    },",
+      "    plugins: {",
+      "      '@typescript-eslint': tseslint,",
+      "    },",
+      "    rules: {",
+      "      ...tseslint.configs['recommended'].rules,",
+      "      '@typescript-eslint/explicit-function-return-type': 'error',",
+      "      '@typescript-eslint/no-explicit-any': 'error',",
+      "    },",
+      "    rules: {",
+      "      // TypeScript specific rules",
+      "      '@typescript-eslint/explicit-function-return-type': 'error',",
+      "      '@typescript-eslint/no-explicit-any': 'error',",
+      "      '@typescript-eslint/no-unused-vars': 'error',",
+      "      '@typescript-eslint/naming-convention': [",
+      "        'error',",
+      "        {",
+      "          selector: 'variable',",
+      "          format: ['camelCase'],",
+      "        },",
+      "      ],",
+      "      // General rules",
+      "      'no-console': 'warn',",
+      "      'no-debugger': 'error',",
+      "    },",
+      "  },",
+      "];"
+    ]);
+
+    // Add karma.conf.cjs file
+    settings.func.addFile('karma-config', 'karma.conf.cjs', [
+      "// Karma configuration file, see link for more information",
+      "// https://karma-runner.github.io/1.0/config/configuration-file.html",
+      "",
+      "// Fix for process is not a function",
+      "const originalProcess = global.process;",
+      "global.process = function() {};",
+      "Object.setPrototypeOf(global.process, originalProcess);",
+      "",
+      "module.exports = function(config) {",
+      "  config.set({",
+      "    basePath: '',",
+      "    frameworks: ['jasmine', '@angular-devkit/build-angular'],",
+      "    plugins: [",
+      "      require('@angular-devkit/build-angular/plugins/karma'),",
+      "      require('karma-jasmine'),",
+      "      require('karma-chrome-launcher'),",
+      "      require('karma-jasmine-html-reporter')",
+      "    ],",
+      "    client: {",
+      "      jasmine: {},",
+      "      clearContext: false, // leave Jasmine Spec Runner output visible in browser",
+      "    },",
+      "    jasmineHtmlReporter: {",
+      "      suppressAll: true, // removes the duplicated traces",
+      "    },",
+      "    coverageReporter: {",
+      "      dir: require('path').join(__dirname, './coverage'),",
+      "      subdir: '.',",
+      "      reporters: [",
+      "        { type: 'html' },",
+      "        { type: 'text-summary' }",
+      "      ]",
+      "    },",
+      "    reporters: ['progress', 'kjhtml'],",
+      "    browsers: ['ChromeHeadless'],",
+      "    restartOnFileChange: false,",
+      "    singleRun: true,",
+      "    port: 9876,",
+      "    colors: true,",
+      "    logLevel: config.LOG_INFO,",
+      "    autoWatch: false",
+      "  });",
+      "};"
+    ]);
+
+    // Add test.ts file
+    settings.func.addFile('tests.test', 'src/__tests__/test.ts', [
+      "// This file is required by karma.conf.js and loads recursively all .spec and framework files",
+      "import 'zone.js/testing';",
+      "import { getTestBed } from '@angular/core/testing';",
+      "import {",
+      "  BrowserDynamicTestingModule,",
+      "  platformBrowserDynamicTesting,",
+      "} from '@angular/platform-browser-dynamic/testing';",
+      "",
+      "// Extend the type for require to include context",
+      "declare const require: {",
+      "  context(path: string, deep?: boolean, filter?: RegExp): {",
+      "    keys(): string[];",
+      "    <T>(id: string): T;",
+      "  };",
+      "};",
+      "",
+      "// First, initialize the Angular testing environment",
+      "getTestBed().initTestEnvironment(",
+      "  BrowserDynamicTestingModule,",
+      "  platformBrowserDynamicTesting(),",
+      ");",
+      "",
+      "// Load all tests using require.context",
+      "const context = require.context('./', true, /\\.spec\\.ts$/);",
+      "context.keys().map(context);"
+    ]);
+
+    // Add app.component.spec.ts file
+    settings.func.addFile('tests.app-component', 'src/__tests__/app.component.spec.ts', [
+      "import { ComponentFixture, TestBed } from '@angular/core/testing';",
+      "import { AppComponent } from '../app/app.component';",
+      "import { provideRouter } from '@angular/router';",
+      "",
+      "describe('AppComponent', () => {",
+      "  let component: AppComponent;",
+      "  let fixture: ComponentFixture<AppComponent>;",
+      "",
+      "  beforeEach(async () => {",
+      "    await TestBed.configureTestingModule({",
+      "      imports: [AppComponent],",
+      "      providers: [provideRouter([])]",
+      "    }).compileComponents();",
+      "",
+      "    fixture = TestBed.createComponent(AppComponent);",
+      "    component = fixture.componentInstance;",
+      "    fixture.detectChanges();",
+      "  });",
+      "",
+      "  it('should create the app', () => {",
+      "    expect(component).toBeTruthy();",
+      "  });",
+      "});"
+    ]);
+
+    // Delete the default spec file
+    fs.unlinkSync(path.join(settings.basic.projectDir, 'src', 'app', 'app.component.spec.ts'));
+
+    // Modify angular.json with analytics settings and test configuration
+    const angularJson = settings.func.addFile('angular', 'angular.json', {});
+    angularJson.cli = {analytics: false};
+    angularJson.projects[settings.basic.packageName].architect.test.options.karmaConfig = "karma.conf.cjs";
+    angularJson.projects[settings.basic.packageName].architect.test.options.include = ["src/__tests__/**/*.spec.ts"];
+
+    // Modify main.ts to comment out error logging
+    const mainTs = settings.func.addFile('main', 'src/main.ts', []);
+    for (let i = 0; i < mainTs.length; i++) {
+      mainTs[i] = mainTs[i].replace('.catch((err)', '.catch((/*err*/)');
+      mainTs[i] = mainTs[i].replace('console.error(err)', '{ /*console.error(err)*/ }');
+    }
   };
 }
 
@@ -797,7 +977,7 @@ function createSvelteProject(settings) {
       "        languageOptions: {",
       "            parser: svelteParser,",
       "            parserOptions: {",
-      "                parser: typescriptParser",
+      "                parser: typescriptParser,",
       "            }",
       "        }",
       "    }",
