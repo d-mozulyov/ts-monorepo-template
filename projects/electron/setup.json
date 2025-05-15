@@ -1,0 +1,11 @@
+{
+  "type": "Electron",
+  "builddir": "out",
+  "production": {
+    "node_modules": false,
+    "paths": ["out"]
+  },
+  "symlinks": {
+    "src/@shared": "SHARED"
+  }
+}

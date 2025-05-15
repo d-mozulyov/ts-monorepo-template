@@ -1209,14 +1209,26 @@ function createCapacitorProject(settings) {
  */
 function createElectronProject(settings) {
   // Initialize Electron project
-  execSync(`npx --yes create-electron-app ${settings.basic.projectName} --skip-git`, {
+  execSync(`npx --yes create-electron-app ${settings.basic.projectName} --template=vite-typescript --skip-git`, {
     cwd: settings.basic.projectParentDir,
     stdio: 'inherit'
   });
 
   return function() {
-    // ToDo: Add Electron-specific post-creation steps here if needed
-    throw new Error(settings.helper.getUnimplementedProjectTypeError());
+    // Apply Electron settings
+    settings.helper.apply({
+      sourceDir: 'src',
+      buildDir: 'out',
+      eslint: true,
+      jest: true,//['svelte-eslint-parser', 'jsdom', 'vitest'],
+      //production: 'public',
+      //debug: 'with-chrome',
+      scripts: {
+        lint: "eslint .",
+        //test: "vitest run",
+        build: settings.package.scripts.make
+      }
+    });
   };
 }
 

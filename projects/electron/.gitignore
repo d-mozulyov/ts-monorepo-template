@@ -1,4 +1,4 @@
-# Logs
+﻿# Logs
 logs
 *.log
 npm-debug.log*
@@ -90,3 +90,17 @@ typings/
 
 # Electron-Forge
 out/
+
+# Ignore directories
+node_modules
+out
+
+# VSCode files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Ignore internal symlinks
+src/@shared

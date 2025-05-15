@@ -10,6 +10,12 @@
     "clean": "npm run clean --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces",
-    "build": "npm run build --workspaces"
+    "build": "npm run build --workspaces",
+    "clean:electron": "npm run clean --workspace=@monorepo/electron",
+    "lint:electron": "npm run lint --workspace=@monorepo/electron",
+    "test:electron": "npm run test --workspace=@monorepo/electron",
+    "build:electron": "npm run build --workspace=@monorepo/electron",
+    "start:electron": "npm run start --workspace=@monorepo/electron",
+    "dev:electron": "npm run dev --workspace=@monorepo/electron"
   }
 }
