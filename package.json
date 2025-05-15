@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "workspaces": [
+    "projects/electron"
   ],
   "scripts": {
     "clean": "npm run clean --workspaces",
